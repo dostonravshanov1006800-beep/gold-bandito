@@ -243,7 +243,7 @@ body.fs-mode .fs-badge, body.fs-mode .fs-total { animation: badgeGlow 1.8s ease-
 }
 .board-frame {
   position: relative;
-  width: min(100%, 62vh); max-width: 480px;
+  width: min(100%, 68vh); max-width: 480px;
   padding: 10px;
   border-radius: var(--r-lg);
   background:
@@ -322,9 +322,9 @@ body.fs-mode .fs-badge, body.fs-mode .fs-total { animation: badgeGlow 1.8s ease-
 /* ================= БАННЕР ВЫИГРЫША ================= */
 /* множитель каскадов: движущийся бейдж наверху сетки */
 .cascade-mult {
-  position: absolute; z-index: 12;
-  top: 0; left: 50%;
-  transform: translate(-50%, -50%) scale(.5);
+  position: absolute; z-index: 30;
+  bottom: calc(100% + 5px); left: 50%;
+  transform: translate(-50%, 12px) scale(.5);
   display: flex; align-items: center; gap: 8px;
   padding: 7px 16px;
   border-radius: 999px;
@@ -338,7 +338,7 @@ body.fs-mode .fs-badge, body.fs-mode .fs-total { animation: badgeGlow 1.8s ease-
 }
 .cascade-mult.show {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, 0) scale(1);
 }
 .cm-label {
   font-size: 10.5px; font-weight: 900; letter-spacing: 1.6px;
@@ -970,56 +970,12 @@ body.fs-mode .fs-badge, body.fs-mode .fs-total { animation: badgeGlow 1.8s ease-
 }
 html, body { overflow-x: hidden; max-width: 100vw; }
 
-/* ---------- зона множителя НАД барабаном ---------- */
-.mult-zone {
-  position: relative; z-index: 6;
-  width: 100%; max-width: 480px;
-  min-height: 46px;
-  display: flex; align-items: center; justify-content: center;
-  gap: 8px;
-  padding: 0 4px;
-}
-.mult-ladder {
-  display: flex; align-items: center; justify-content: center;
-  gap: clamp(3px, 1.6vw, 7px);
-  max-width: 100%;
-}
-.m-chip {
-  min-width: 0; flex: 0 1 auto;
-  padding: clamp(3px, 1.2vw, 6px) clamp(6px, 2.2vw, 11px);
-  border-radius: 999px;
-  font-size: clamp(11px, 3.4vw, 14px);
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  background: rgba(20, 10, 38, .55);
-  border: 1px solid rgba(255, 224, 130, .14);
-  color: rgba(255, 255, 255, .34);
-  transition: color .3s ease, background .3s ease, box-shadow .3s ease, transform .25s ease;
-}
-.m-chip.passed {
-  color: var(--gold-2);
-  border-color: rgba(246, 196, 69, .4);
-  background: rgba(246, 196, 69, .1);
-}
-.m-chip.active {
-  color: #40260a;
-  background: var(--gold-grad);
-  border-color: #ffe9a3;
-  box-shadow: 0 0 14px rgba(255, 213, 100, .55), inset 0 1px 0 rgba(255, 255, 255, .5);
-  animation: mPulse 1.1s ease-in-out infinite;
-}
-@keyframes mPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.12); }
-}
-.m-chip.roll { animation: mRoll .38s cubic-bezier(.2, 1.3, .4, 1); }
-@keyframes mRoll {
-  0% { transform: translateY(70%) scale(.8); opacity: 0; }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
-}
 .fs-tag {
-  position: absolute; left: 4px; top: 50%; transform: translateY(-50%);
+  position: absolute; left: 12px; top: -7px; transform: none;
+  background: rgba(20, 10, 38, .85);
+  border: 1px solid rgba(246, 196, 69, .45);
+  border-radius: 999px;
+  padding: 2px 8px;
   font-size: 10px; font-weight: 900; letter-spacing: 1.2px;
   color: #ffd564;
   text-shadow: 0 0 12px rgba(255, 190, 80, .8);
@@ -1027,12 +983,6 @@ html, body { overflow-x: hidden; max-width: 100vw; }
   white-space: nowrap;
 }
 @keyframes fsTagGlow { from { opacity: .75; } to { opacity: 1; } }
-body.fs-mode .mult-zone { min-height: 54px; }
-body.fs-mode .m-chip.active {
-  box-shadow: 0 0 22px rgba(255, 170, 40, .85), inset 0 1px 0 rgba(255, 255, 255, .5);
-  color: #3a2000;
-}
-.board-frame.quake { animation: quake .4s ease; }
 @keyframes quake {
   0%, 100% { transform: translate(0, 0); }
   20% { transform: translate(-3px, 1px); }
@@ -1044,7 +994,7 @@ body.fs-mode .m-chip.active {
 /* ---------- рама барабана: жирное золотое кольцо + орнаменты ---------- */
 .board-frame {
   border: 1px solid rgba(212, 160, 23, .35) !important;
-  padding: 12px !important;
+  padding: 7px !important;
 }
 .board-frame::before {
   content: '';
@@ -1343,7 +1293,7 @@ body.bw-shake .board-frame { animation: quake .35s ease 3; }
 
 /* ---------- доступность ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .m-chip.active, .m-chip.roll, .fs-tag, .moon, .stars, .stars-2,
+  .fs-tag, .moon, .stars, .stars-2,
   .mountains, .pueblo, .dust, .clouds, .tumbleweed,
   .cell.framed::after, .spin-btn.spinning, .spin-btn.spinning .spin-icon,
   .bw-rays, body.bw-shake .board-frame { animation: none !important; }

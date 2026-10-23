@@ -259,29 +259,20 @@ function renderGrid(cells, drop = false) {
   cells.forEach((c, idx) => setCell(idx, c, drop, drop ? (idx % 5) * 90 + Math.floor(idx / 5) * 35 : 0));
 }
 
-// ---------- лесенка множителя над барабаном ----------
-function renderLadder(current) {
-  const ladder = $('mult-ladder');
-  ladder._cur = current;
-  const shown = Math.max(6, current + 2);
-  let html = '';
-  for (let v = 1; v <= shown; v++) {
-    const cls = v < current ? 'm-chip passed' : v === current ? 'm-chip active' : 'm-chip';
-    html += '<span class="' + cls + '">&times;' + v + '</span>';
-  }
-  ladder.innerHTML = html;
+// ---------- движущийся множитель каскадов: бейдж НАД рамой, ячейки не задевает ----------
+let cmTimer = null;
+function showCascadeMult(x, label) {
+  const el = $('cascade-mult');
+  el.querySelector('.cm-label').textContent = label;
+  el.querySelector('.cm-x').textContent = '×' + x;
+  el.classList.add('show');
+  el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
+  clearTimeout(cmTimer);
+  cmTimer = setTimeout(() => el.classList.remove('show'), 1100);
 }
-function bumpLadder(current, fsMode) {
-  const ladder = $('mult-ladder');
-  $('fs-tag').classList.toggle('hidden', !fsMode);
-  if (ladder._cur !== current) {
-    renderLadder(current);
-    const act = ladder.querySelector('.m-chip.active');
-    if (act) { act.classList.add('roll'); }
-    const frame = document.querySelector('.board-frame');
-    frame.classList.remove('quake'); void frame.offsetWidth; frame.classList.add('quake');
-    sfx('win');
-  }
+function hideCascadeMult() {
+  clearTimeout(cmTimer);
+  $('cascade-mult').classList.remove('show');
 }
 function burstAt(cell) {
   const r = cell.getBoundingClientRect(), br = grid.getBoundingClientRect();
@@ -507,7 +498,7 @@ async function animateSpin(result) {
   let accWin = 0;
   let lastMult = 1;
   let curGrid = result.initialGrid.slice();
-  renderLadder(0);
+  hideCascadeMult();
   $('fs-tag').classList.toggle('hidden', !state.bonus);
 
   for (let ti = 0; ti < result.tumbles.length; ti++) {
@@ -515,10 +506,13 @@ async function animateSpin(result) {
     accWin += t.win;
     lastMult = Math.max(lastMult, t.multiplier || 1);
 
-    // лесенка множителя над барабаном: серия в базе, множитель в бонусе
+    // движущийся множитель: серия в базе, множитель в бонусе
     if (t.win > 0) {
       const stepVal = state.bonus ? (t.multiplier || 1) : (ti + 1);
-      bumpLadder(stepVal, !!state.bonus);
+      showCascadeMult(stepVal, state.bonus ? 'МНОЖИТЕЛЬ' : 'СЕРИЯ');
+      const frame = document.querySelector('.board-frame');
+      frame.classList.remove('quake'); void frame.offsetWidth; frame.classList.add('quake');
+      sfx('win');
     }
 
     // подсветка выигрышных символов
@@ -577,7 +571,7 @@ async function animateSpin(result) {
   }
   $('win-banner').classList.remove('show');
   // плавное затухание лесенки без резкого пропадания
-  renderLadder(0);
+  hideCascadeMult();
   $('fs-tag').classList.toggle('hidden', !(state.bonus && state.bonus.remaining > 0));
 
   // итог: BIG / MEGA / EPIC WIN — оверлей с дождём монет

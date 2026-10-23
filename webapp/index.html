@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=28" />
+  <link rel="stylesheet" href="style.css?v=29" />
   <script src="config.js"></script>
 </head>
 <body>
@@ -108,11 +108,9 @@
   </header>
 
   <div class="board-outer">
-    <div class="mult-zone" aria-hidden="true">
-      <div id="fs-tag" class="fs-tag hidden">ФРИСПИНЫ</div>
-      <div id="mult-ladder" class="mult-ladder"></div>
-    </div>
     <div class="board-frame">
+      <div id="cascade-mult" class="cascade-mult" aria-hidden="true"><span class="cm-label">СЕРИЯ</span><span class="cm-x">×1</span></div>
+      <div id="fs-tag" class="fs-tag hidden">ФРИСПИНЫ</div>
       <i class="corner c-tl"></i><i class="corner c-tr"></i>
       <i class="corner c-bl"></i><i class="corner c-br"></i>
       <div class="board-wrap">
@@ -307,6 +305,6 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="app.js?v=28"></script>
+<script src="app.js?v=29"></script>
 </body>
 </html>
