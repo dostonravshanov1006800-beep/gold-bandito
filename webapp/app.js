@@ -23,6 +23,173 @@ if (!API && tg && tg.showAlert) {
 }
 
 const DEMO = /[?&]demo=1/.test(location.search);
+
+// ---------- демо-режим (?demo=1): локальный движок-заглушка ----------
+const DEMO_SYMS = ['BANDIT','SKULL','TEQUILA','SOMBRERO','MARACAS','MONEYBAG','CACTUS','DYNAMITE','PISTOL','SPUR','GEM','COIN'];
+const DEMO_PAYS = { BANDIT:3.4, SKULL:2.73, TEQUILA:1.64, SOMBRERO:1.23, MARACAS:0.82, MONEYBAG:0.75, CACTUS:0.61, DYNAMITE:0.47, PISTOL:0.55, SPUR:0.38, GEM:0.41, COIN:0.34 };
+
+function demoGrid(rng) {
+  return Array.from({ length: 20 }, () => {
+    if (rng() < 0.07) return { sym: 'GUITAR', framed: false };
+    return { sym: DEMO_SYMS[Math.floor(rng() * DEMO_SYMS.length)], framed: rng() < 0.06 };
+  });
+}
+
+function demoWins(g) {
+  const out = [];
+  for (const sym of DEMO_SYMS) {
+    let k = 0;
+    for (let c = 0; c < 5; c++) {
+      let has = false;
+      for (let r = 0; r < 4; r++) {
+        const cc = g[c + r * 5];
+        if (cc && (cc.sym === sym || cc.sym === WILD)) has = true;
+      }
+      if (!has) break; k++;
+    }
+    if (k >= 3) out.push({ sym, k, pay: DEMO_PAYS[sym] * (k === 3 ? 1 : k === 4 ? 3.2 : 10) });
+  }
+  return out;
+}
+
+function demoSpin(bet) {
+  const rng = Math.random;
+  let g = demoGrid(rng);
+  const initialGrid = g.slice();
+  const tumbles = [];
+  let round = 0;
+  while (round++ < 12) {
+    const wins = demoWins(g);
+    if (!wins.length) break;
+    const burns = new Set();
+    let tw = 0;
+    for (const w of wins) {
+      tw += w.pay * bet;
+      for (let i = 0; i < 20; i++) {
+        if (i % 5 < w.k && g[i] && (g[i].sym === w.sym || g[i].sym === WILD)) burns.add(i);
+      }
+    }
+    // сдвиг вниз + новые сверху + рамки→вайлды
+    const next = new Array(20).fill(null);
+    const newCells = [], wildsAt = [];
+    for (let c = 0; c < 5; c++) {
+      const survivors = [];
+      for (let r = 0; r < 4; r++) {
+        const idx = c + r * 5;
+        if (!burns.has(idx)) survivors.push(g[idx]);
+        else if (g[idx].framed) wildsAt.push(idx);
+      }
+      let rr = 3;
+      for (let s = survivors.length - 1; s >= 0; s--) { next[c + rr * 5] = survivors[s]; rr--; }
+      for (; rr >= 0; rr--) {
+        const idx = c + rr * 5;
+        const nc = rng() < 0.07 ? { sym: 'GUITAR', framed: false }
+          : { sym: DEMO_SYMS[Math.floor(rng() * DEMO_SYMS.length)], framed: rng() < 0.06 };
+        next[idx] = nc; newCells.push({ idx, sym: nc.sym, framed: nc.framed });
+      }
+    }
+    for (const idx of wildsAt) {
+      next[idx] = { sym: WILD, framed: false };
+      newCells.push({ idx, sym: WILD, framed: false });
+    }
+    g = next;
+    tumbles.push({ burns: [...burns], newCells, wildsAt, multiplier: 1, win: Math.round(tw * 100) / 100 });
+  }
+  return {
+    initialGrid, tumbles, tumblesCount: tumbles.length,
+    totalWin: Math.round(tumbles.reduce((a, t) => a + t.win, 0) * 100) / 100,
+    scatters: 0, freeSpins: 0, freeSpinsWon: 0,
+    balance: 1000, bonus: null,
+  };
+}
+
+function demoState() {
+  return {
+    balance: 1000, spinsTotal: 5, isAdmin: true, nextBonusIn: 0, bonusAmount: 500,
+    bonus: null, history: [], betSteps: state.betSteps, startBalance: 1000,
+    paytable: DEMO_SYMS.map(s => ({ id: s, pays: { 3: DEMO_PAYS[s], 4: (DEMO_PAYS[s] * 3.2).toFixed(2), 5: (DEMO_PAYS[s] * 10).toFixed(2) } })),
+  };
+}
+
+// ---------- ежедневный бонус ----------
+async function claimBonus() {
+  const btn = $('bonus-btn');
+  btn.disabled = true;
+  try {
+    const initData = tg && tg.initData ? tg.initData : '';
+    const res = await fetch(`${API}/api/bonus`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Init-Data': initData },
+      body: '{}',
+    });
+    if (res.status === 401) { toast('Открой приложение из Telegram', true); return; }
+    const data = await res.json();
+    if (!res.ok) {
+      const h = Math.floor((data.wait || 0) / 3600), m = Math.ceil(((data.wait || 0) % 3600) / 60);
+      toast(h > 0 ? `Бонус будет доступен через ${h} ч` : `Бонус будет доступен через ${m} мин`);
+      btn.classList.add('claimed');
+      return;
+    }
+    updateBalance(data.balance);
+    btn.classList.add('claimed');
+    toast('+' + fmt(data.amount) + ' G — ежедневный бонус');
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+  } catch (e) {
+    toast('Ошибка соединения', true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+$('bonus-btn').addEventListener('click', claimBonus);
+
+// ---------- админ-панель ----------
+async function adminApi(path, opts) {
+  const initData = tg && tg.initData ? tg.initData : '';
+  const url = path.includes('?') ? path + '&d=' + encodeURIComponent(initData) : path + '?d=' + encodeURIComponent(initData);
+  const res = await fetch(API + url, opts ? { ...opts, headers: { 'Content-Type': 'application/json', 'X-Init-Data': initData, ...(opts.headers || {}) } } : undefined);
+  if (res.status === 401) throw new Error('unauthorized');
+  return res.json();
+}
+
+async function renderAdmin() {
+  try {
+    const data = await adminApi('/api/admin/users');
+    const s = await adminApi('/api/admin/stats');
+    const st = $('admin-stats');
+    st.innerHTML = `
+      <div class="stat-card"><span>ЮЗЕРОВ</span><b>${s.users ?? 0}</b></div>
+      <div class="stat-card"><span>СПИНОВ</span><b>${s.spins ?? 0}</b></div>
+      <div class="stat-card"><span>ПОСТАВЛЕНО</span><b>${fmt(s.staked || 0)} G</b></div>
+      <div class="stat-card"><span>ВЫПЛАЧЕНО</span><b>${fmt(s.won || 0)} G</b></div>`;
+    const list = $('admin-users');
+    list.innerHTML = (data.users || []).map(u => `
+      <li>
+        <div class="au-name">${u.username ? '@' + u.username : 'id ' + u.telegram_id}
+          <small>id ${u.telegram_id}${u.fs_remaining > 0 ? ' · ФС: ' + u.fs_remaining : ''}</small>
+        </div>
+        <div class="au-bal">${fmt(u.balance)} G</div>
+        <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-100"><svg><use href="#ui-minus"/></svg></button>
+        <button class="au-btn" data-tid="${u.telegram_id}" data-amt="100"><svg><use href="#ui-plus"/></svg></button>
+      </li>`).join('');
+    list.querySelectorAll('.au-btn').forEach(b => b.addEventListener('click', async () => {
+      const amt = Number(b.dataset.amt);
+      b.disabled = true;
+      try {
+        const r = await adminApi('/api/admin/give', {
+          method: 'POST', body: JSON.stringify({ telegramId: Number(b.dataset.tid), amount: amt }),
+        });
+        if (r.balance !== undefined) {
+          b.closest('li').querySelector('.au-bal').textContent = fmt(r.balance) + ' G';
+          toast((amt > 0 ? '+' : '') + amt + ' G → id ' + b.dataset.tid);
+        } else toast(r.error || 'Ошибка', true);
+      } catch (e) { toast('Ошибка соединения', true); }
+      b.disabled = false;
+    }));
+  } catch (e) {
+    $('admin-users').innerHTML = '<li class="history-empty">Нет доступа</li>';
+  }
+}
+
 const WILD = 'WILD';
 const SCATTER = 'GUITAR';
 const CELL_COUNT = 20;
@@ -423,169 +590,3 @@ refreshState();
 setTimeout(() => {
   if (!grid.children[0].innerHTML) renderGrid(randomGrid(), true);
 }, 800);
-
-// ---------- демо-режим (?demo=1): локальный движок-заглушка ----------
-const DEMO_SYMS = ['BANDIT','SKULL','TEQUILA','SOMBRERO','MARACAS','MONEYBAG','CACTUS','DYNAMITE','PISTOL','SPUR','GEM','COIN'];
-const DEMO_PAYS = { BANDIT:3.4, SKULL:2.73, TEQUILA:1.64, SOMBRERO:1.23, MARACAS:0.82, MONEYBAG:0.75, CACTUS:0.61, DYNAMITE:0.47, PISTOL:0.55, SPUR:0.38, GEM:0.41, COIN:0.34 };
-
-function demoGrid(rng) {
-  return Array.from({ length: 20 }, () => {
-    if (rng() < 0.07) return { sym: 'GUITAR', framed: false };
-    return { sym: DEMO_SYMS[Math.floor(rng() * DEMO_SYMS.length)], framed: rng() < 0.06 };
-  });
-}
-
-function demoWins(g) {
-  const out = [];
-  for (const sym of DEMO_SYMS) {
-    let k = 0;
-    for (let c = 0; c < 5; c++) {
-      let has = false;
-      for (let r = 0; r < 4; r++) {
-        const cc = g[c + r * 5];
-        if (cc && (cc.sym === sym || cc.sym === WILD)) has = true;
-      }
-      if (!has) break; k++;
-    }
-    if (k >= 3) out.push({ sym, k, pay: DEMO_PAYS[sym] * (k === 3 ? 1 : k === 4 ? 3.2 : 10) });
-  }
-  return out;
-}
-
-function demoSpin(bet) {
-  const rng = Math.random;
-  let g = demoGrid(rng);
-  const initialGrid = g.slice();
-  const tumbles = [];
-  let round = 0;
-  while (round++ < 12) {
-    const wins = demoWins(g);
-    if (!wins.length) break;
-    const burns = new Set();
-    let tw = 0;
-    for (const w of wins) {
-      tw += w.pay * bet;
-      for (let i = 0; i < 20; i++) {
-        if (i % 5 < w.k && g[i] && (g[i].sym === w.sym || g[i].sym === WILD)) burns.add(i);
-      }
-    }
-    // сдвиг вниз + новые сверху + рамки→вайлды
-    const next = new Array(20).fill(null);
-    const newCells = [], wildsAt = [];
-    for (let c = 0; c < 5; c++) {
-      const survivors = [];
-      for (let r = 0; r < 4; r++) {
-        const idx = c + r * 5;
-        if (!burns.has(idx)) survivors.push(g[idx]);
-        else if (g[idx].framed) wildsAt.push(idx);
-      }
-      let rr = 3;
-      for (let s = survivors.length - 1; s >= 0; s--) { next[c + rr * 5] = survivors[s]; rr--; }
-      for (; rr >= 0; rr--) {
-        const idx = c + rr * 5;
-        const nc = rng() < 0.07 ? { sym: 'GUITAR', framed: false }
-          : { sym: DEMO_SYMS[Math.floor(rng() * DEMO_SYMS.length)], framed: rng() < 0.06 };
-        next[idx] = nc; newCells.push({ idx, sym: nc.sym, framed: nc.framed });
-      }
-    }
-    for (const idx of wildsAt) {
-      next[idx] = { sym: WILD, framed: false };
-      newCells.push({ idx, sym: WILD, framed: false });
-    }
-    g = next;
-    tumbles.push({ burns: [...burns], newCells, wildsAt, multiplier: 1, win: Math.round(tw * 100) / 100 });
-  }
-  return {
-    initialGrid, tumbles, tumblesCount: tumbles.length,
-    totalWin: Math.round(tumbles.reduce((a, t) => a + t.win, 0) * 100) / 100,
-    scatters: 0, freeSpins: 0, freeSpinsWon: 0,
-    balance: 1000, bonus: null,
-  };
-}
-
-function demoState() {
-  return {
-    balance: 1000, spinsTotal: 5, isAdmin: true, nextBonusIn: 0, bonusAmount: 500,
-    bonus: null, history: [], betSteps: state.betSteps, startBalance: 1000,
-    paytable: DEMO_SYMS.map(s => ({ id: s, pays: { 3: DEMO_PAYS[s], 4: (DEMO_PAYS[s] * 3.2).toFixed(2), 5: (DEMO_PAYS[s] * 10).toFixed(2) } })),
-  };
-}
-
-// ---------- ежедневный бонус ----------
-async function claimBonus() {
-  const btn = $('bonus-btn');
-  btn.disabled = true;
-  try {
-    const initData = tg && tg.initData ? tg.initData : '';
-    const res = await fetch(`${API}/api/bonus`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Init-Data': initData },
-      body: '{}',
-    });
-    if (res.status === 401) { toast('Открой приложение из Telegram', true); return; }
-    const data = await res.json();
-    if (!res.ok) {
-      const h = Math.floor((data.wait || 0) / 3600), m = Math.ceil(((data.wait || 0) % 3600) / 60);
-      toast(h > 0 ? `Бонус будет доступен через ${h} ч` : `Бонус будет доступен через ${m} мин`);
-      btn.classList.add('claimed');
-      return;
-    }
-    updateBalance(data.balance);
-    btn.classList.add('claimed');
-    toast('+' + fmt(data.amount) + ' G — ежедневный бонус');
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-  } catch (e) {
-    toast('Ошибка соединения', true);
-  } finally {
-    btn.disabled = false;
-  }
-}
-$('bonus-btn').addEventListener('click', claimBonus);
-
-// ---------- админ-панель ----------
-async function adminApi(path, opts) {
-  const initData = tg && tg.initData ? tg.initData : '';
-  const url = path.includes('?') ? path + '&d=' + encodeURIComponent(initData) : path + '?d=' + encodeURIComponent(initData);
-  const res = await fetch(API + url, opts ? { ...opts, headers: { 'Content-Type': 'application/json', 'X-Init-Data': initData, ...(opts.headers || {}) } } : undefined);
-  if (res.status === 401) throw new Error('unauthorized');
-  return res.json();
-}
-
-async function renderAdmin() {
-  try {
-    const data = await adminApi('/api/admin/users');
-    const s = await adminApi('/api/admin/stats');
-    const st = $('admin-stats');
-    st.innerHTML = `
-      <div class="stat-card"><span>ЮЗЕРОВ</span><b>${s.users ?? 0}</b></div>
-      <div class="stat-card"><span>СПИНОВ</span><b>${s.spins ?? 0}</b></div>
-      <div class="stat-card"><span>ПОСТАВЛЕНО</span><b>${fmt(s.staked || 0)} G</b></div>
-      <div class="stat-card"><span>ВЫПЛАЧЕНО</span><b>${fmt(s.won || 0)} G</b></div>`;
-    const list = $('admin-users');
-    list.innerHTML = (data.users || []).map(u => `
-      <li>
-        <div class="au-name">${u.username ? '@' + u.username : 'id ' + u.telegram_id}
-          <small>id ${u.telegram_id}${u.fs_remaining > 0 ? ' · ФС: ' + u.fs_remaining : ''}</small>
-        </div>
-        <div class="au-bal">${fmt(u.balance)} G</div>
-        <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-100"><svg><use href="#ui-minus"/></svg></button>
-        <button class="au-btn" data-tid="${u.telegram_id}" data-amt="100"><svg><use href="#ui-plus"/></svg></button>
-      </li>`).join('');
-    list.querySelectorAll('.au-btn').forEach(b => b.addEventListener('click', async () => {
-      const amt = Number(b.dataset.amt);
-      b.disabled = true;
-      try {
-        const r = await adminApi('/api/admin/give', {
-          method: 'POST', body: JSON.stringify({ telegramId: Number(b.dataset.tid), amount: amt }),
-        });
-        if (r.balance !== undefined) {
-          b.closest('li').querySelector('.au-bal').textContent = fmt(r.balance) + ' G';
-          toast((amt > 0 ? '+' : '') + amt + ' G → id ' + b.dataset.tid);
-        } else toast(r.error || 'Ошибка', true);
-      } catch (e) { toast('Ошибка соединения', true); }
-      b.disabled = false;
-    }));
-  } catch (e) {
-    $('admin-users').innerHTML = '<li class="history-empty">Нет доступа</li>';
-  }
-}
