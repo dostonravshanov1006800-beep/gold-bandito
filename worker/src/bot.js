@@ -21,7 +21,7 @@ function mainKeyboard(webappUrl) {
 }
 
 const HELP = [
-  'Gold Bandito — слот в стиле Wild Bandito.',
+  'Gold Bandito — слот в стиле мексиканской ночи.',
   '',
   'Как играть: нажми «Играть» под этим сообщением — откроется мини-апп со слотом.',
   '',
@@ -54,7 +54,7 @@ export async function handleUpdate(env, update) {
       const bal = await topup(env, from.id, Number(m[1]), Number(m[2]));
       await tg(env, 'sendMessage', {
         chat_id: update.message.chat.id,
-        text: `\u{1F389} Начислено ${m[1]} G (баланс: ${bal} G). Спасибо за пополнение!`,
+        text: `Начислено ${m[1]} G (баланс: ${bal} G). Спасибо за пополнение!`,
       });
     }
     return { ok: true };
@@ -74,7 +74,7 @@ export async function handleUpdate(env, update) {
     await tg(env, 'sendMessage', {
       chat_id: chatId,
       text: [
-        'Салют! Это Gold Bandito — слот в духе Wild Bandito.',
+        'Салют! Это Gold Bandito — салунный слот в духе мексиканской ночи.',
         '',
         'Стартовый баланс: 1000 G. Крути барабан кнопкой ниже.',
         'Сетка 5×4, 1,024 ways, каскады, вайлды из золотых рамок и фриспины с растущим множителем.',

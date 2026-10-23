@@ -685,7 +685,13 @@ function updateShopUI() {
   $('shop-bonus').classList.toggle('claimed', !ready);
   $('shop-bonus-amt').textContent = ready ? '+500 G' : 'Получено';
 }
-function openShop() { updateShopUI(); $('shop-sheet').classList.remove('hidden'); requestAnimationFrame(() => $('shop-sheet').classList.add('open')); $('shop-overlay').classList.remove('hidden'); }
+function openShop() {
+  updateShopUI();
+  const sheet = $('shop-sheet');
+  sheet.classList.remove('hidden');
+  $('shop-overlay').classList.remove('hidden');
+  requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.add('open')));
+}
 function closeShop() { $('shop-sheet').classList.remove('open'); $('shop-overlay').classList.add('hidden'); setTimeout(() => $('shop-sheet').classList.add('hidden'), 320); }
 $('bonus-btn').addEventListener('click', openShop);
 $('shop-close').addEventListener('click', closeShop);
@@ -697,30 +703,37 @@ $('shop-bonus').addEventListener('click', async () => {
   updateShopUI();
 });
 
-async function buyPack(packId) {
+async function buyPack(packId, btn) {
   const initData = tg && tg.initData ? tg.initData : '';
   if (!initData) { toast('Покупки доступны из Telegram', true); return; }
-  if (!tg || !tg.openInvoice) { toast('Обнови Telegram', true); return; }
+  if (btn) btn.disabled = true;
   try {
     const res = await fetch(`${API}/api/invoice`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Init-Data': initData },
       body: JSON.stringify({ packId }),
     });
-    if (!res.ok) { toast('Не удалось создать счёт', true); return; }
-    const { link, error } = await res.json();
-    if (!link) { toast(error || 'Ошибка', true); return; }
-    tg.openInvoice(link, (status) => {
-      if (status === 'paid') {
-        toast('Баланс пополнен!');
-        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-        closeShop();
-        refreshState();
-      } else if (status === 'failed') toast('Оплата не прошла', true);
-    });
+    if (res.status === 401) { toast('Открой приложение из Telegram', true); return; }
+    const { link, error } = await res.json().catch(() => ({}));
+    if (!link) { toast(error || 'Не удалось создать счёт', true); return; }
+    if (typeof tg.openInvoice === 'function') {
+      tg.openInvoice(link, (status) => {
+        if (status === 'paid') {
+          toast('Баланс пополнен!');
+          if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+          closeShop();
+          refreshState();
+        } else if (status === 'failed') toast('Оплата не прошла', true);
+        else if (status === 'pending') toast('Оплата обрабатывается…');
+      });
+    } else {
+      // Фолбэк: открыть ссылку счёта через Telegram
+      tg.openLink(link);
+    }
   } catch (e) { toast('Ошибка соединения', true); }
+  finally { if (btn) btn.disabled = false; }
 }
-document.querySelectorAll('.shop-pack').forEach(p => p.addEventListener('click', () => buyPack(Number(p.dataset.pack))));
+document.querySelectorAll('.shop-pack').forEach(p => p.addEventListener('click', () => buyPack(Number(p.dataset.pack), p)));
 
 let adminCache = { users: [], tx: [] };
 $('admin-search').addEventListener('input', (e) => renderAdminUsers(e.target.value.trim().toLowerCase()));
