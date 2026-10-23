@@ -18,10 +18,15 @@ export async function getBalance(env, telegramId) {
 }
 
 // Атомарное списание ставки: баланс уменьшается только если его хватает.
-export async function placeBet(env, telegramId, bet) {
+export async function placeBet(env, telegramId, bet, minIntervalMs = 200) {
+  // Атомарно списываем ставку ТОЛЬКО если денег хватает и с прошлого спина
+  // прошло не меньше minIntervalMs (защита от спама, работает на любом изоляте).
+  const now = Date.now();
   const res = await env.DB.prepare(
-    'UPDATE users SET balance = balance - ?, spins = spins + 1 WHERE telegram_id = ? AND balance >= ?'
-  ).bind(bet, telegramId, bet).run();
+    `UPDATE users SET balance = balance - ?, spins = spins + 1, last_spin_ms = ?
+     WHERE telegram_id = ? AND balance >= ?
+       AND (last_spin_ms IS NULL OR ? - last_spin_ms >= ?)`
+  ).bind(bet, now, telegramId, bet, now, minIntervalMs).run();
   return res.meta.changes === 1;
 }
 

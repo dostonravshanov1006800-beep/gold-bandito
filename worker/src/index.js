@@ -121,9 +121,14 @@ export default {
       if (!BET_STEPS.includes(bet)) return json(env, { error: 'bad_bet' }, 400);
       if (env.RATE_LIMIT !== 'off' && spinRateLimited(user.id)) return json(env, { error: 'too_fast' }, 429);
 
-      const ok = await placeBet(env, user.id, bet);
+      const ivRaw = Number(env.SPIN_MIN_INTERVAL_MS);
+      const ok = await placeBet(env, user.id, bet, Number.isFinite(ivRaw) ? ivRaw : 200);
       if (!ok) {
-        return json(env, { error: 'insufficient_funds', balance: row.balance }, 402);
+        // денег хватает, но слишком быстро → 429; иначе 402
+        const row = await env.DB.prepare('SELECT balance FROM users WHERE telegram_id = ?')
+          .bind(user.id).first();
+        if (row && row.balance >= bet) return json(env, { error: 'too_fast' }, 429);
+        return json(env, { error: 'insufficient_funds', balance: row ? row.balance : 0 }, 402);
       }
 
       const result = playSpin(bet, Math.random, 0);

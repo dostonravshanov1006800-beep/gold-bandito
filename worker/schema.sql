@@ -40,3 +40,6 @@ CREATE TABLE IF NOT EXISTS charges (
   amount INTEGER NOT NULL,
   created_at TEXT DEFAULT (datetime('now'))
 );
+
+-- 23.10.2026: интервальный рейт-лимит спинов (мин. пауза между спинами)
+ALTER TABLE users ADD COLUMN last_spin_ms INTEGER;

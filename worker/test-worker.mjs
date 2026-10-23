@@ -23,8 +23,10 @@ function makeDB() {
   function run(sql, b) {
     if (sql.startsWith('INSERT OR IGNORE')) return exec['INSERT OR IGNORE INTO users'](b);
     if (sql.startsWith('UPDATE users SET balance = balance - ?')) {
-      const u = users.get(b[1]);
-      if (u && u.balance >= b[0]) { u.balance -= b[0]; u.spins++; return { meta: { changes: 1 } }; }
+      const u = users.get(b[2]);
+      if (u && u.balance >= b[0] && (u.last_spin_ms == null || b[4] - u.last_spin_ms >= b[5])) {
+        u.balance -= b[0]; u.spins++; u.last_spin_ms = b[4]; return { meta: { changes: 1 } };
+      }
       return { meta: { changes: 0 } };
     }
     if (sql.startsWith('UPDATE users SET balance = balance + ?')) {
@@ -101,8 +103,10 @@ function patchDB(db) {
       return;
     }
     if (sql.startsWith('UPDATE users SET balance = balance - ?')) {
-      const u = db._users.get(b[1]);
-      if (u && u.balance >= b[0]) { u.balance -= b[0]; u.spins++; return { meta: { changes: 1 } }; }
+      const u = db._users.get(b[2]);
+      if (u && u.balance >= b[0] && (u.last_spin_ms == null || b[4] - u.last_spin_ms >= b[5])) {
+        u.balance -= b[0]; u.spins++; u.last_spin_ms = b[4]; return { meta: { changes: 1 } };
+      }
       return { meta: { changes: 0 } };
     }
     if (sql.startsWith('UPDATE users SET last_bonus')) {
@@ -160,6 +164,7 @@ const env = {
   ADMIN_IDS: ADMIN,
   WEBHOOK_SECRET: 's3cret',
   RATE_LIMIT: 'off',
+  SPIN_MIN_INTERVAL_MS: 0,
   WEBAPP_URL: 'https://example.com/',
   ALLOWED_ORIGINS: 'https://example.com',
   DB: patchDB(makeDB()),
@@ -324,7 +329,7 @@ res = await call('/api/admin/give', { body: { telegramId: -5, amount: 100 } }, A
 check('give отрицательный id: 400', res.status === 400);
 
 // 12. рейт-лимит спинов: 30 за 10 секунд
-const RL_ENV = { ...env, RATE_LIMIT: undefined };
+const RL_ENV = { ...env, RATE_LIMIT: undefined, SPIN_MIN_INTERVAL_MS: 200 };
 delete RL_ENV.RATE_LIMIT;
 const RL_ID = 666002;
 env.DB._users.set(RL_ID, { telegram_id: RL_ID, username: 'rl', balance: 1e6, spins: 0, fs_remaining: 0, fs_multiplier: 1, fs_bet: 100, created_at: 'now' });
@@ -341,6 +346,20 @@ for (let i = 0; i < 40; i++) {
 }
 check('рейт-лимит: не более 30 спинов за окно', ok200 <= 30, `ok200=${ok200}`);
 check('рейт-лимит: спам получает 429', got429 > 0, `429=${got429}`);
+
+// 13. интервальный лимит D1: подряд два спина — второй 429 (баланс не списан)
+const IV_ENV = { ...env, RATE_LIMIT: 'off', SPIN_MIN_INTERVAL_MS: 200 };
+const IV_ID = 777003;
+env.DB._users.set(IV_ID, { telegram_id: IV_ID, username: 'iv', balance: 1e6, spins: 0, fs_remaining: 0, fs_multiplier: 1, fs_bet: 100, created_at: 'now' });
+const IV_DATA = makeInitData(IV_ID);
+const ivu = env.DB._users.get(IV_ID);
+const ir1 = await call('/api/spin', { body: { bet: 100 } }, IV_DATA, IV_ENV);
+const iv1 = await ir1.json();
+check('интервал: первый спин 200', ir1.status === 200);
+const balAfter = ivu.balance;
+const ir2 = await call('/api/spin', { body: { bet: 100 } }, IV_DATA, IV_ENV);
+check('интервал: второй спин подряд 429', ir2.status === 429, 'status=' + ir2.status);
+check('интервал: ставка не списана при 429', ivu.balance === balAfter, `${ivu.balance} vs ${balAfter}`);
 
 console.log(failures === 0 ? '\nВСЕ ТЕСТЫ ПРОЙДЕНЫ' : `\n${failures} ПРОВАЛОВ`);
 process.exit(failures === 0 ? 0 : 1);
