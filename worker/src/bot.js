@@ -22,7 +22,7 @@ async function tg(env, method, payload) {
   return res;
 }
 
-const APP_V = 30;
+const APP_V = 31;
 
 function appUrl(env) {
   const base = String(env.WEBAPP_URL || '');

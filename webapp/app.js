@@ -645,8 +645,9 @@ async function doSpin() {
   } catch (e) {
     if (e.code === 'insufficient_funds') toast('Недостаточно голды', true);
     else if (e.message === 'unauthorized') toast('Открой приложение из Telegram', true);
+    else if (e.code === 'too_fast') toast('Полегче, бандито — не так быстро');
     else toast("Ошибка соединения, попробуй ещё раз", true);
-    stopAuto();
+    if (e.code !== 'too_fast') stopAuto();
     refreshState();
   } finally {
     $('spin').classList.remove('spinning');
@@ -695,7 +696,7 @@ async function refreshState() {
     const noInit = !(tg && tg.initData);
     const msg = e && e.message === 'unauthorized'
       ? (noInit
-        ? 'Открой игру через бота @masons_agent — кнопка «Играть» или меню бота.'
+        ? 'Игра открыта не из Telegram. Закрой это окно и открой игру кнопкой «ИГРАТЬ» в чате бота @masons_agent.'
         : 'Сессия истекла. Закрой игру и открой заново из меню бота.')
       : (navigator.onLine === false
         ? 'Нет интернета. Проверь соединение и попробуй ещё раз.'
