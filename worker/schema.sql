@@ -32,3 +32,11 @@ CREATE TABLE IF NOT EXISTS transactions (
 
 -- 23.10.2026: ежедневный бонус (миграция для существующей базы)
 ALTER TABLE users ADD COLUMN last_bonus INTEGER NOT NULL DEFAULT 0;
+
+-- 23.10.2026: идемпотентность Stars-платежей (защита от повторной доставки webhook)
+CREATE TABLE IF NOT EXISTS charges (
+  charge_id TEXT PRIMARY KEY,
+  telegram_id INTEGER NOT NULL,
+  amount INTEGER NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);

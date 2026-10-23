@@ -50,12 +50,17 @@ export async function handleUpdate(env, update) {
   if (pay) {
     const from = update.message.from || {};
     const m = String(pay.invoice_payload || '').match(/^topup:(\d+):(\d+)$/);
-    if (m && Number(pay.total_amount) === Number(m[2])) {
-      const bal = await topup(env, from.id, Number(m[1]), Number(m[2]));
-      await tg(env, 'sendMessage', {
-        chat_id: update.message.chat.id,
-        text: `Начислено ${m[1]} G (баланс: ${bal} G). Спасибо за пополнение!`,
-      });
+    const chargeId = pay.telegram_payment_charge_id;
+    if (m && chargeId && Number(pay.total_amount) === Number(m[2])) {
+      try {
+        const bal = await topup(env, from.id, Number(m[1]), Number(m[2]), chargeId);
+        await tg(env, 'sendMessage', {
+          chat_id: update.message.chat.id,
+          text: `Начислено ${m[1]} G (баланс: ${bal} G). Спасибо за пополнение!`,
+        });
+      } catch (e) {
+        // повторная доставка webhook — уже начислено, отвечаем ok чтобы Telegram не ретраил
+      }
     }
     return { ok: true };
   }

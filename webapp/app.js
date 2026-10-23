@@ -119,7 +119,7 @@ function renderAdminUsers(q) {
 }
 
 function renderAdminTx() {
-  const KIND_RU = { topup_admin: 'Админ', bonus_daily: 'Бонус', spin: 'Спин' };
+  const KIND_RU = { topup_admin: 'Админ', bonus_daily: 'Бонус', spin: 'Спин', topup_stars: 'Пополнение' };
   $('admin-tx').innerHTML = adminCache.tx.map(t => `
     <li>
       <span class="tx-who">${t.username ? '@' + t.username : 'id ' + t.telegram_id}

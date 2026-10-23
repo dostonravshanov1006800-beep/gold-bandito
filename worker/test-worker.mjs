@@ -48,6 +48,9 @@ function makeDB() {
           if (sql.startsWith('SELECT bet, win')) {
             return { all: async () => ({ results: spins.filter(s => s.telegram_id === b[0]).slice(-b[1]).reverse() }) };
           }
+          if (sql.startsWith('SELECT last_bonus')) {
+            return { first: async () => users.get(b[0]) ? { last_bonus: users.get(b[0]).last_bonus || 0 } : null };
+          }
           if (sql.startsWith('SELECT COUNT(*)')) {
             return { first: async () => ({ users: users.size, spins: spins.length, staked: spins.reduce((a,s)=>a+s.bet,0), won: spins.reduce((a,s)=>a+s.win,0) }) };
           }
@@ -70,6 +73,7 @@ function makeDB() {
 
 // патчим prepare чтобы batch работал: оборачиваем bind-результаты
 function patchDB(db) {
+  db._charges = db._charges || new Map();
   const origPrepare = db.prepare.bind(db);
   db.prepare = (sql) => {
     const p = origPrepare(sql);
@@ -101,9 +105,33 @@ function patchDB(db) {
       if (u && u.balance >= b[0]) { u.balance -= b[0]; u.spins++; return { meta: { changes: 1 } }; }
       return { meta: { changes: 0 } };
     }
-    if (sql.startsWith('UPDATE users SET balance = balance + ?')) {
-      const u = db._users.get(b[4]);
+    if (sql.startsWith('UPDATE users SET last_bonus')) {
+      const uu = db._users.get(b[1]);
+      if (uu) uu.last_bonus = b[0];
+      return;
+    }
+    if (sql.startsWith('UPDATE users SET balance = balance + ?') && sql.includes('fs_remaining')) {
+      const u = db._users.get(b[5] ?? b[4]);
+      if (!u) throw new Error('no user ' + b);
       u.balance += b[0]; u.fs_remaining = b[1]; u.fs_multiplier = b[2]; u.fs_bet = b[3];
+      if (b[4] !== undefined && sql.includes('fs_total')) u.fs_total = b[4];
+      return;
+    }
+    if (sql.includes('last_bonus')) {
+      const u = db._users.get(b[2]);
+      if (!u) throw new Error('no user');
+      u.balance += b[0]; u.last_bonus = b[1];
+      return;
+    }
+    if (sql.startsWith('UPDATE users SET balance = balance + ?')) {
+      const u = db._users.get(b[1]);
+      if (!u) throw new Error('no user');
+      u.balance += b[0];
+      return;
+    }
+    if (sql.startsWith('INSERT INTO charges')) {
+      if (db._charges.has(b[0])) throw new Error('UNIQUE constraint failed: charges.charge_id');
+      db._charges.set(b[0], { telegram_id: b[1], amount: b[2] });
       return;
     }
     if (sql.startsWith('UPDATE users SET balance = balance + ? WHERE telegram_id = ? AND kind IS NULL')) { /* unused */ }
@@ -224,6 +252,51 @@ for (let i = 0; i < 50; i++) {
   }
 }
 check('инвариант баланса за 50 спинов + бонусы', Math.abs(u.balance - bal) < 0.02, `db=${u.balance} vs ${bal}`);
+
+// 8. оплата Stars: pre-checkout, зачисление, идемпотентность дубликата
+const origFetch = globalThis.fetch;
+const tgCalls = [];
+globalThis.fetch = async (url, opts = {}) => {
+  const u = String(url);
+  if (u.includes('api.telegram.org')) {
+    tgCalls.push({ method: u.split('/').pop(), body: JSON.parse(opts.body || '{}') });
+    return new Response(JSON.stringify({ ok: true, result: true }), { status: 200 });
+  }
+  return origFetch(url, opts);
+};
+import { handleUpdate } from './src/bot.js';
+const payer = { id: 888001, first_name: 'Payer', username: 'payer' };
+env.DB._users.set(payer.id, { telegram_id: payer.id, username: payer.username, balance: 1000, spins: 0, fs_remaining: 0, fs_multiplier: 1, fs_bet: 100, created_at: 'now' });
+const pu = env.DB._users.get(payer.id);
+// pre-checkout подтверждается
+let upd = await handleUpdate(env, { pre_checkout_query: { id: 'pcq1' } });
+check('pre-checkout: подтверждён', tgCalls.at(-1)?.method === 'answerPreCheckoutQuery' && tgCalls.at(-1)?.body.ok === true);
+
+// успешная оплата 25 звёзд → +1000 G
+const payment = (charge) => ({
+  message: {
+    chat: { id: payer.id }, from: payer,
+    successful_payment: {
+      invoice_payload: 'topup:1000:25', total_amount: 25,
+      telegram_payment_charge_id: charge,
+    },
+  },
+});
+await handleUpdate(env, payment('chg-AAA'));
+check('оплата: начислено 1000 G', pu.balance === 2000, `balance=${pu.balance}`);
+check('оплата: сообщение отправлено', /Начислено 1000 G/.test(tgCalls.at(-1)?.body?.text || ''));
+
+// повторная доставка того же платежа — задвоения нет
+await handleUpdate(env, payment('chg-AAA'));
+check('дубликат webhook: голда не задвоилась', pu.balance === 2000, `balance=${pu.balance}`);
+
+// оплата без charge_id игнорируется
+await handleUpdate(env, {
+  message: { chat: { id: payer.id }, from: payer, successful_payment: { invoice_payload: 'topup:1000:25', total_amount: 25 } },
+});
+check('без charge_id: зачисления нет', pu.balance === 2000, `balance=${pu.balance}`);
+
+globalThis.fetch = origFetch;
 
 console.log(failures === 0 ? '\nВСЕ ТЕСТЫ ПРОЙДЕНЫ' : `\n${failures} ПРОВАЛОВ`);
 process.exit(failures === 0 ? 0 : 1);

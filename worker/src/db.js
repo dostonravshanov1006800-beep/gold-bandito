@@ -72,9 +72,14 @@ export async function stats(env) {
 }
 
 // Пополнение за Telegram Stars
-export async function topup(env, telegramId, amount, stars) {
+export async function topup(env, telegramId, amount, stars, chargeId) {
   await ensureUser(env, telegramId);
+  // Идемпотентность: charge_id в PRIMARY KEY — при повторной доставке webhook
+  // вставка упадёт, batch откатится целиком, голда не задвоится.
   await env.DB.batch([
+    env.DB.prepare(
+      'INSERT INTO charges (charge_id, telegram_id, amount) VALUES (?, ?, ?)'
+    ).bind(String(chargeId), telegramId, amount),
     env.DB.prepare('UPDATE users SET balance = balance + ? WHERE telegram_id = ?')
       .bind(amount, telegramId),
     env.DB.prepare(
