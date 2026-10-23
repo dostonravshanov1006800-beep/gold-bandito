@@ -706,6 +706,7 @@ function switchTab(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $('screen-' + name).classList.add('active');
   if (name === 'history') refreshState();
+  if (name === 'info') ensureExamples();
   if (name === 'admin') renderAdmin();
 }
 document.querySelectorAll('.menu-item').forEach(item => {
