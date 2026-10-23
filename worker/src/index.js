@@ -172,6 +172,17 @@ export default {
       });
     }
 
+    // --- История с подгрузкой (пагинация) ---
+    if (url.pathname === '/api/history' && request.method === 'GET') {
+      const initData = url.searchParams.get('d') || '';
+      const user = await validateInitData(initData, env.BOT_TOKEN);
+      if (!user) return json(env, { error: 'unauthorized' }, 401);
+      await ensureUser(env, user.id, user.username);
+      const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
+      const spins = await history(env, user.id, 20, offset);
+      return json(env, { history: spins });
+    }
+
     // --- Ежедневный бонус ---
     if (url.pathname === '/api/bonus' && request.method === 'POST') {
       const initData = request.headers.get('x-init-data') || '';

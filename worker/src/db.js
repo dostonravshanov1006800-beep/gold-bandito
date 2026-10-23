@@ -59,10 +59,15 @@ export async function adminGive(env, telegramId, amount, adminId) {
   return getBalance(env, telegramId);
 }
 
-export async function history(env, telegramId, limit = 20) {
+export async function getUser(env, telegramId) {
+  return env.DB.prepare('SELECT telegram_id, username, balance, spins, fs_remaining, fs_multiplier FROM users WHERE telegram_id = ?')
+    .bind(telegramId).first();
+}
+
+export async function history(env, telegramId, limit = 20, offset = 0) {
   const { results } = await env.DB.prepare(
-    'SELECT bet, win, multipliers, created_at FROM spins WHERE telegram_id = ? ORDER BY id DESC LIMIT ?'
-  ).bind(telegramId, limit).all();
+    'SELECT id, bet, win, multipliers, created_at FROM spins WHERE telegram_id = ? ORDER BY id DESC LIMIT ? OFFSET ?'
+  ).bind(telegramId, limit, offset).all();
   return results || [];
 }
 

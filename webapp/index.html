@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gold Bandito</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=27" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=28" />
   <script src="config.js"></script>
 </head>
 <body>
@@ -54,6 +57,8 @@
       <path d="M9 6 V22 H25" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M24 34 L31 41 L44 25" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
+    <symbol id="ui-sound" viewBox="0 0 64 64"><path d="M10 26h10l12-10v32L22 38H10z" fill="currentColor"/><path d="M40 24c3 3 4.5 6.5 4.5 8s-1.5 5-4.5 8M46 18c5 5 7 9.5 7 14s-2 9-7 14" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></symbol>
+    <symbol id="ui-mute-ico" viewBox="0 0 64 64"><path d="M10 26h10l12-10v32L22 38H10z" fill="currentColor"/><path d="M42 26 L54 38 M54 26 L42 38" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></symbol>
     <symbol id="ui-flame" viewBox="0 0 64 64">
       <path d="M32 6 C38 18 48 22 48 38 A16 16 0 0 1 16 38 C16 30 22 26 24 18 C27 24 30 25 32 22 C33 17 32 11 32 6 Z" fill="url(#g-gold)" stroke="#c77e18" stroke-width="2.4"/>
     </symbol>
@@ -72,6 +77,9 @@
     <div class="pueblo"></div>
     <div class="church"><div class="church-tower"></div><i></i></div>
     <div class="fireflies"></div>
+    <div class="dust"></div>
+    <div class="clouds"></div>
+    <div class="tumbleweed"></div>
     <div class="vignette"></div>
   </div>
 
@@ -88,6 +96,7 @@
         <span class="fs-star">★</span><span id="fs-count">12</span>
         <span class="fs-x" id="fs-mult">×1</span>
       </div>
+      <button id="mute-btn" class="mute-btn" aria-label="Звук"><svg><use href="#ui-sound"/></svg></button>
       <div class="balance-wrap">
         <div class="balance-chip">
           <svg class="chip-coin"><use href="#ui-coin"/></svg>
@@ -99,11 +108,13 @@
   </header>
 
   <div class="board-outer">
+    <div class="mult-zone" aria-hidden="true">
+      <div id="fs-tag" class="fs-tag hidden">ФРИСПИНЫ</div>
+      <div id="mult-ladder" class="mult-ladder"></div>
+    </div>
     <div class="board-frame">
-      <div id="cascade-mult" class="cascade-mult hidden" aria-hidden="true">
-        <span class="cm-label" id="cm-label">СЕРИЯ</span>
-        <span class="cm-x" id="cm-x">×1</span>
-      </div>
+      <i class="corner c-tl"></i><i class="corner c-tr"></i>
+      <i class="corner c-bl"></i><i class="corner c-br"></i>
       <div class="board-wrap">
         <div id="grid" class="grid"></div>
         <div id="win-banner" class="win-banner hidden">
@@ -133,6 +144,12 @@
         <div class="bet-value"><span id="bet">100</span></div>
         <button id="bet-plus" class="bet-btn" aria-label="Больше"><svg><use href="#ui-plus"/></svg></button>
       </div>
+      <div class="bet-presets">
+        <button class="bp" data-v="100">100</button>
+        <button class="bp" data-v="1000">1K</button>
+        <button class="bp" data-v="10000">10K</button>
+        <button class="bp" data-v="max">MAX</button>
+      </div>
     </div>
     <button id="spin" class="spin-btn" aria-label="Крутить">
       <svg class="spin-icon"><use href="#ui-play"/></svg>
@@ -146,6 +163,13 @@
     <div id="retry-pill" class="retry-pill hidden">
       <p id="retry-msg">Нет связи с сервером</p>
       <button id="retry-btn" class="retry-btn">ПОДКЛЮЧИТЬСЯ</button>
+    </div>
+    <div id="bigwin" class="bigwin hidden">
+      <div class="bw-rays"></div>
+      <div class="bw-title" id="bw-title">BIG WIN</div>
+      <div class="bw-amount" id="bw-amount">+0</div>
+      <div class="bw-tap">тапни, чтобы продолжить</div>
+      <div class="bw-coins" id="bw-coins"></div>
     </div>
     <div id="auto-pop" class="auto-pop hidden">
       <span class="auto-pop-t">АВТО-ПРОКРУТЫ</span>
@@ -283,6 +307,6 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="app.js?v=27"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>

@@ -73,10 +73,10 @@ async function renderAdmin() {
     $('admin-stats').innerHTML = `
       <div class="stat-card"><span>ЮЗЕРОВ</span><b>${s.users ?? 0}</b></div>
       <div class="stat-card"><span>СПИНОВ</span><b>${s.spins ?? 0}</b></div>
-      <div class="stat-card"><span>ОБОРОТ</span><b class="long">${fmt(s.staked || 0)} G</b></div>
-      <div class="stat-card"><span>ВЫПЛАЧЕНО</span><b class="long">${fmt(s.won || 0)} G</b></div>
+      <div class="stat-card"><span>ОБОРОТ</span><b class="long">${fmtCompact(s.staked || 0)} G</b></div>
+      <div class="stat-card"><span>ВЫПЛАЧЕНО</span><b class="long">${fmtCompact(s.won || 0)} G</b></div>
       <div class="stat-card"><span>RTP ФАКТ</span><b>${rtp}%</b></div>
-      <div class="stat-card"><span>ПРИБЫЛЬ</span><b class="long">${fmt(pnl)} G</b></div>`;
+      <div class="stat-card"><span>ПРИБЫЛЬ</span><b class="long">${fmtCompact(pnl)} G</b></div>`;
 
     renderAdminUsers($('admin-search').value.trim().toLowerCase());
     renderAdminTx();
@@ -98,28 +98,60 @@ function renderAdminUsers(q) {
     <li class="au-card">
       <div class="au-top">
         <div class="au-name">${u.username ? '@' + esc(u.username) : 'id ' + u.telegram_id}
+          ${String(u.telegram_id).startsWith('999999') ? '<span class="au-badge-test">TEST</span>' : ''}
           <small>id ${u.telegram_id} · спинов: ${u.spins ?? 0}${u.fs_remaining > 0 ? ' · ФС: ' + u.fs_remaining : ''}</small>
         </div>
         <div class="au-bal" id="au-bal-${u.telegram_id}">${fmt(u.balance)} G</div>
       </div>
       <div class="au-actions">
-        <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-1000">−1k</button>
-        <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-100">−100</button>
-        <button class="au-btn" data-tid="${u.telegram_id}" data-amt="100">+100</button>
-        <button class="au-btn" data-tid="${u.telegram_id}" data-amt="1000">+1k</button>
+        <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-10000">−10K</button>
+        <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-1000">−1K</button>
+        <button class="au-btn" data-tid="${u.telegram_id}" data-amt="1000">+1K</button>
+        <button class="au-btn" data-tid="${u.telegram_id}" data-amt="10000">+10K</button>
+        <button class="au-btn au-own" data-tid="${u.telegram_id}">Своя</button>
+      </div>
+      <div class="au-custom hidden" id="au-custom-${u.telegram_id}">
+        <input type="number" inputmode="numeric" placeholder="Сумма ±" id="au-amt-${u.telegram_id}">
+        <button data-tid="${u.telegram_id}" class="au-apply">Начислить</button>
       </div>
     </li>`).join('') || '<li class="history-empty">Никого не найдено</li>';
   $('admin-users').querySelectorAll('.au-btn').forEach(b => b.addEventListener('click', async () => {
+    const tid = b.dataset.tid;
+    if (b.classList.contains('au-own')) {
+      const row = $('au-custom-' + tid);
+      row.classList.toggle('hidden');
+      return;
+    }
     const amt = Number(b.dataset.amt);
     b.disabled = true;
     try {
       const r = await adminApi('/api/admin/give', {
-        method: 'POST', body: JSON.stringify({ telegramId: Number(b.dataset.tid), amount: amt }),
+        method: 'POST', body: JSON.stringify({ telegramId: Number(tid), amount: amt }),
       });
       if (r.balance !== undefined) {
-        const el = $('au-bal-' + b.dataset.tid);
+        const el = $('au-bal-' + tid);
         if (el) el.textContent = fmt(r.balance) + ' G';
-        toast((amt > 0 ? '+' : '') + fmt(amt) + ' G → id ' + b.dataset.tid);
+        toast((amt > 0 ? '+' : '') + fmt(amt) + ' G → id ' + tid);
+      } else toast(r.error || 'Ошибка', true);
+    } catch (e) { toast('Ошибка соединения', true); }
+    b.disabled = false;
+  }));
+  $('admin-users').querySelectorAll('.au-apply').forEach(b => b.addEventListener('click', async () => {
+    const tid = b.dataset.tid;
+    const raw = $('au-amt-' + tid).value.trim();
+    const amt = Number(raw.replace(',', '.'));
+    if (!raw || !Number.isFinite(amt) || amt === 0) { toast('Введи сумму, например 500 или -500', true); return; }
+    b.disabled = true;
+    try {
+      const r = await adminApi('/api/admin/give', {
+        method: 'POST', body: JSON.stringify({ telegramId: Number(tid), amount: amt }),
+      });
+      if (r.balance !== undefined) {
+        const el = $('au-bal-' + tid);
+        if (el) el.textContent = fmt(r.balance) + ' G';
+        toast((amt > 0 ? '+' : '') + fmt(amt) + ' G → id ' + tid);
+        $('au-custom-' + tid).classList.add('hidden');
+        $('au-amt-' + tid).value = '';
       } else toast(r.error || 'Ошибка', true);
     } catch (e) { toast('Ошибка соединения', true); }
     b.disabled = false;
@@ -157,6 +189,42 @@ const state = {
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const fmt = (n) => (Math.round(n * 100) / 100).toLocaleString('ru-RU');
 
+// компактный формат: 10 000 → 10K, 1 250 000 → 1,25M — чтобы панели не разрывало
+const fmtCompact = (n) => {
+  const a = Math.abs(n);
+  const dec = (v, d) => v.toFixed(d).replace('.', ',').replace(/,0$/, '');
+  if (a >= 1e9) return dec(n / 1e9, a >= 1e10 ? 0 : 1) + 'B';
+  if (a >= 1e6) return dec(n / 1e6, a >= 1e7 ? 0 : 1) + 'M';
+  if (a >= 1e4) return Math.round(n / 1e3) + 'K';
+  if (a >= 1e3) return dec(n / 1e3, 1) + 'K';
+  return String(Math.round(n * 10) / 10);
+};
+
+// ---------- синтезированные звуки (без файлов) + mute ----------
+let audioCtx = null;
+let soundOn = localStorage.getItem('gb-sound') !== '0';
+function sfx(kind) {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime;
+    const tone = (f, st, dur, type, vol) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type || 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(vol || .1, t + st);
+      g.gain.exponentialRampToValueAtTime(.0001, t + st + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t + st); o.stop(t + st + dur + .03);
+    };
+    if (kind === 'spin') { tone(190, 0, .16, 'square', .04); tone(150, .12, .2, 'square', .04); }
+    if (kind === 'win') { tone(659, 0, .12); tone(880, .09, .18); }
+    if (kind === 'big') { [523, 659, 784, 1046].forEach((f, i) => tone(f, i * .11, .34)); }
+    if (kind === 'coin') { tone(1568, 0, .06, 'triangle', .05); }
+    if (kind === 'tick') { tone(330, 0, .05, 'square', .03); }
+  } catch (e) {}
+}
+
 function toast(msg, isErr = false) {
   const t = $('toast');
   t.textContent = msg;
@@ -187,7 +255,76 @@ function setCell(idx, cellData, drop = false, delay = 0) {
 }
 
 function renderGrid(cells, drop = false) {
-  cells.forEach((c, idx) => setCell(idx, c, drop, drop ? (idx % 5) * 55 + Math.floor(idx / 5) * 40 : 0));
+  // колонки стартуют слева направо с шагом ~90мс, сверху вниз — «дождь» символов
+  cells.forEach((c, idx) => setCell(idx, c, drop, drop ? (idx % 5) * 90 + Math.floor(idx / 5) * 35 : 0));
+}
+
+// ---------- лесенка множителя над барабаном ----------
+function renderLadder(current) {
+  const ladder = $('mult-ladder');
+  ladder._cur = current;
+  const shown = Math.max(6, current + 2);
+  let html = '';
+  for (let v = 1; v <= shown; v++) {
+    const cls = v < current ? 'm-chip passed' : v === current ? 'm-chip active' : 'm-chip';
+    html += '<span class="' + cls + '">&times;' + v + '</span>';
+  }
+  ladder.innerHTML = html;
+}
+function bumpLadder(current, fsMode) {
+  const ladder = $('mult-ladder');
+  $('fs-tag').classList.toggle('hidden', !fsMode);
+  if (ladder._cur !== current) {
+    renderLadder(current);
+    const act = ladder.querySelector('.m-chip.active');
+    if (act) { act.classList.add('roll'); }
+    const frame = document.querySelector('.board-frame');
+    frame.classList.remove('quake'); void frame.offsetWidth; frame.classList.add('quake');
+    sfx('win');
+  }
+}
+function burstAt(cell) {
+  const r = cell.getBoundingClientRect(), br = grid.getBoundingClientRect();
+  for (let i = 0; i < 4; i++) {
+    const c = document.createElement('div');
+    c.className = 'coin-particle';
+    c.style.left = ((r.left - br.left + r.width / 2) / br.width * 100) + '%';
+    c.style.top = ((r.top - br.top + r.height / 2) / br.height * 100) + '%';
+    c.style.setProperty('--dx', (Math.random() * 130 - 65) + 'px');
+    c.style.setProperty('--dy', (Math.random() * 130 - 65) + 'px');
+    c.style.animationDelay = (Math.random() * 80) + 'ms';
+    coinsLayer.appendChild(c);
+    setTimeout(() => c.remove(), 1300);
+  }
+}
+async function showBigWin(amount, title) {
+  const bw = $('bigwin');
+  $('bw-title').textContent = title;
+  countUp($('bw-amount'), amount, 1100);
+  bw.classList.remove('hidden');
+  document.body.classList.add('bw-shake');
+  sfx('big');
+  const coins = $('bw-coins');
+  let n = 0;
+  const rain = setInterval(() => {
+    if (n++ > 44) return clearInterval(rain);
+    const c = document.createElement('div');
+    c.className = 'coin-particle';
+    c.style.left = (Math.random() * 96) + '%';
+    c.style.top = '-6%';
+    c.style.setProperty('--dx', (Math.random() * 50 - 25) + 'px');
+    c.style.setProperty('--dy', (window.innerHeight * .95) + 'px');
+    c.style.animationDelay = '0ms';
+    coins.appendChild(c);
+    setTimeout(() => c.remove(), 1600);
+  }, 55);
+  let closed = false;
+  bw.addEventListener('click', () => { closed = true; }, { once: true });
+  const t0 = performance.now();
+  while (!closed && performance.now() - t0 < 3800) await sleep(90);
+  bw.classList.add('hidden');
+  document.body.classList.remove('bw-shake');
+  coins.innerHTML = '';
 }
 
 function randomGrid() {
@@ -206,10 +343,11 @@ function updateBalance(target) {
   const diff = target - from;
   const t0 = performance.now();
   state.balance = target;
+  el.title = fmt(target) + ' G';
   function step(ts) {
     const k = Math.min(1, (ts - t0) / 500);
     const ease = 1 - Math.pow(1 - k, 3);
-    el.textContent = fmt(from + diff * ease);
+    el.textContent = fmtCompact(from + diff * ease);
     if (k < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -369,22 +507,18 @@ async function animateSpin(result) {
   let accWin = 0;
   let lastMult = 1;
   let curGrid = result.initialGrid.slice();
-  const cm = $('cascade-mult'), cmLabel = $('cm-label'), cmX = $('cm-x');
+  renderLadder(0);
+  $('fs-tag').classList.toggle('hidden', !state.bonus);
 
   for (let ti = 0; ti < result.tumbles.length; ti++) {
     const t = result.tumbles[ti];
     accWin += t.win;
     lastMult = Math.max(lastMult, t.multiplier || 1);
 
-    // движущийся множитель наверху: серия в базе, множитель в бонусе
+    // лесенка множителя над барабаном: серия в базе, множитель в бонусе
     if (t.win > 0) {
-      cmLabel.textContent = state.bonus ? 'МНОЖИТЕЛЬ' : 'СЕРИЯ';
-      cmX.textContent = '×' + (state.bonus ? (t.multiplier || 1) : ti + 1);
-      cm.classList.remove('hidden');
-      cm.classList.add('show');
-      cm.classList.remove('pulse');
-      void cm.offsetWidth;
-      cm.classList.add('pulse');
+      const stepVal = state.bonus ? (t.multiplier || 1) : (ti + 1);
+      bumpLadder(stepVal, !!state.bonus);
     }
 
     // подсветка выигрышных символов
@@ -401,21 +535,35 @@ async function animateSpin(result) {
       await sleep(430);
     }
 
-    // сгорание
+    // сгорание + золотые брызги из каждой ячейки
     for (const idx of t.burns) {
-      grid.children[idx].classList.remove('hit');
-      grid.children[idx].classList.add('burn');
+      const cellEl = grid.children[idx];
+      cellEl.classList.remove('hit');
+      cellEl.classList.add('burn');
+      burstAt(cellEl);
     }
+    sfx('coin');
     await sleep(390);
 
     // падение новых
-    for (const nc of t.newCells) setCell(nc.idx, nc, true, (nc.idx % 5) * 45);
+    for (const nc of t.newCells) setCell(nc.idx, nc, true, (nc.idx % 5) * 60);
     curGrid = settledGrid(curGrid, t);
+    // уцелевшие, которые сместились вниз, тоже падают с физикой
+    const newIdxs = new Set(t.newCells.map(n => n.idx));
+    for (let idx = 0; idx < CELL_COUNT; idx++) {
+      if (newIdxs.has(idx)) continue;
+      const cellEl = grid.children[idx];
+      const want = curGrid[idx];
+      if (!cellEl || !want) continue;
+      const same = cellEl.dataset.sym === want.sym &&
+        cellEl.classList.contains('framed') === !!want.framed;
+      if (!same) setCell(idx, want, true, 70 + Math.floor(idx / 5) * 45);
+    }
     await sleep(120);
     reconcileGrid(curGrid); // страховка: DOM обязан совпадать с расчётом
 
     // накопленный выигрыш шага + бегущий итог бонуса
-    $('last-win').textContent = fmt(accWin);
+    $('last-win').textContent = fmtCompact(accWin);
     if (state.bonus || result.bonusEnd) updateFsTotal(base + accWin);
     await sleep(120);
     flyCoins(t.win);
@@ -428,11 +576,16 @@ async function animateSpin(result) {
     }
   }
   $('win-banner').classList.remove('show');
-  cm.classList.remove('show');
-  setTimeout(() => { if (!cm.classList.contains('show')) cm.classList.add('hidden'); }, 500);
+  // плавное затухание лесенки без резкого пропадания
+  renderLadder(0);
+  $('fs-tag').classList.toggle('hidden', !(state.bonus && state.bonus.remaining > 0));
 
-  // итоговый баннер
-  if (result.totalWin > 0) {
+  // итог: BIG / MEGA / EPIC WIN — оверлей с дождём монет
+  const ratio = result.totalWin / Math.max(1, betValue());
+  if (result.totalWin > 0 && ratio >= 10) {
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    await showBigWin(result.totalWin, ratio >= 50 ? 'EPIC WIN' : ratio >= 25 ? 'MEGA WIN' : 'BIG WIN');
+  } else if (result.totalWin > 0) {
     const big = result.totalWin >= betValue() * 20;
     if (big && tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
     flyCoins(result.totalWin / 10);
@@ -484,6 +637,7 @@ async function doSpin() {
   }
 
   state.spinning = true;
+  sfx('spin');
   $('spin').disabled = true;
   $('spin').classList.add('spinning');
   try {
@@ -527,8 +681,11 @@ async function refreshState() {
     if (s.betSteps) state.betSteps = s.betSteps;
     state.bonus = s.bonus && s.bonus.remaining > 0 ? s.bonus : null;
     state.balance = s.balance;
-    $('balance').textContent = fmt(s.balance);
-    $('bet').textContent = fmt(betValue());
+    $('balance').textContent = fmtCompact(s.balance);
+    $('balance').title = fmt(s.balance) + ' G';
+    $('bet').textContent = fmtCompact(betValue());
+    markPresets();
+    histOffset = (s.history || []).length;
     renderHistory(s.history || []);
     renderPaytable();
     renderExamples();
@@ -626,25 +783,73 @@ function renderExamples() {
     </div>`;
 }
 
-function renderHistory(rows) {
+let histOffset = 0;
+let histBusy = false;
+
+function parseSpinDate(s) {
+  // created_at приходит из SQLite как UTC «YYYY-MM-DD HH:MM:SS»
+  const d = new Date(String(s || '').replace(' ', 'T') + 'Z');
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function histRowHtml(r, d) {
+  const won = r.win > 0;
+  const time = d.toLocaleTimeString('ru-RU', { hour12: false });
+  const mv = r.multipliers && Number(r.multipliers) > 1
+    ? `<span class="hist-mult">&times;${Math.round(Number(r.multipliers))}</span>` : '';
+  return `<li class="hist-row">
+    <span class="hist-ico ${won ? 'win' : ''}"><svg><use href="#ui-coin"/></svg></span>
+    <div class="hist-mid">
+      <span class="hist-bet">Ставка ${fmt(r.bet)} G${mv}</span>
+      <span class="hist-time">${time}</span>
+    </div>
+    <b class="hist-win ${won ? 'pos' : 'zero'}">${won ? '+' + fmt(r.win) + ' G' : '0'}</b>
+  </li>`;
+}
+
+function renderHistory(rows, append = false) {
   const list = $('history-list');
-  if (!rows.length) {
+  if (!rows.length && !append) {
     list.innerHTML = '<li class="history-empty">Спинов пока нет — крутани барабан</li>';
     return;
   }
-  list.innerHTML = rows.map(r => {
-    const won = r.win > 0;
-    const dt = (r.created_at || '').slice(5, 16);
-    return `<li class="hist-row">
-      <span class="hist-ico ${won ? 'win' : ''}"><svg><use href="#ui-coin"/></svg></span>
-      <div class="hist-mid">
-        <span class="hist-bet">Ставка ${fmt(r.bet)} G</span>
-        <span class="hist-time">${dt}</span>
-      </div>
-      <b class="hist-win ${won ? 'pos' : 'zero'}">${won ? '+' + fmt(r.win) + ' G' : '—'}</b>
-    </li>`;
-  }).join('');
+  const today = new Date();
+  let html = '';
+  let lastDay = append ? list.dataset.lastday || '' : '';
+  let seenDays = !append;
+  for (const r of rows) {
+    const d = parseSpinDate(r.created_at);
+    if (!d) continue;
+    const key = d.toDateString();
+    if (key !== lastDay) {
+      const label = key === today.toDateString()
+        ? 'Сегодня'
+        : d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' });
+      html += `<li class="hist-day">${label}</li>`;
+      lastDay = key;
+    }
+    html += histRowHtml(r, d);
+  }
+  list.dataset.lastday = lastDay;
+  if (append) { list.insertAdjacentHTML('beforeend', html); return; }
+  list.innerHTML = html;
 }
+
+$('history-list').addEventListener('scroll', async () => {
+  const list = $('history-list');
+  if (histBusy || list.scrollTop + list.clientHeight < list.scrollHeight - 140) return;
+  histBusy = true;
+  try {
+    const more = await apiGet('/api/history?offset=' + histOffset);
+    const rows = more.history || [];
+    if (rows.length) {
+      histOffset += rows.length;
+      renderHistory(rows, true);
+      if (rows.length < 20) histBusy = true; // всё, больше нет
+    }
+  } catch (e) { /* тихо: попробуем при следующем скролле */ }
+  finally { if (!histBusy) {} }
+}, { passive: true });
 
 const SYM_NAMES = {
   BANDIT: 'Бандит', SKULL: 'Череп', TEQUILA: 'Текила', SOMBRERO: 'Сомбреро',
@@ -671,6 +876,39 @@ function renderPaytable() {
 $('spin').addEventListener('click', doSpin);
 $('retry-btn').addEventListener('click', retryConnect);
 
+function markPresets() {
+  const cur = state.betSteps[state.betIndex];
+  document.querySelectorAll('.bp').forEach(b => {
+    b.classList.toggle('on', b.dataset.v !== 'max' && Number(b.dataset.v) === cur);
+  });
+}
+document.querySelectorAll('.bp').forEach(b => b.addEventListener('click', () => {
+  if (state.bonus) return;
+  let v;
+  if (b.dataset.v === 'max') {
+    const ok = state.betSteps.filter(s => s <= state.balance);
+    v = ok.length ? ok[ok.length - 1] : state.betSteps[0];
+  } else v = Number(b.dataset.v);
+  const i = state.betSteps.indexOf(v);
+  if (i >= 0) {
+    state.betIndex = i;
+    $('bet').textContent = fmtCompact(betValue());
+    markPresets();
+    sfx('tick');
+  }
+}));
+const muteBtn = $('mute-btn');
+function renderMute() {
+  muteBtn.classList.toggle('off', !soundOn);
+  muteBtn.querySelector('use').setAttribute('href', soundOn ? '#ui-sound' : '#ui-mute-ico');
+}
+muteBtn.addEventListener('click', () => {
+  soundOn = !soundOn;
+  localStorage.setItem('gb-sound', soundOn ? '1' : '0');
+  renderMute();
+  if (soundOn) sfx('tick');
+});
+renderMute();
 $('bet-minus').addEventListener('click', () => {
   state.betIndex = Math.max(0, state.betIndex - 1);
   $('bet').textContent = fmt(state.betSteps[state.betIndex]);
