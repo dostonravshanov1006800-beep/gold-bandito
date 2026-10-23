@@ -65,6 +65,7 @@ curl "https://api.telegram.org/bot<ТОКЕН>/setWebhook?url=https://gold-bandi
 
 ### 3. Фронт
 
+0. Включи Pages: Settings → Pages → Source: **GitHub Actions**.
 1. В `webapp/config.js` укажи URL воркера:
    ```js
    window.GB_CONFIG = { apiBase: "https://gold-bandito.<поддомен>.workers.dev" };
