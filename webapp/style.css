@@ -234,7 +234,7 @@ body.fs-mode .fs-badge, body.fs-mode .fs-total { animation: badgeGlow 1.8s ease-
   position: relative; z-index: 4;
   flex: 1; min-height: 0;
   display: flex; align-items: center; justify-content: center;
-  padding: 4px 14px 0;
+  padding: 24px 14px 0;
 }
 .board-frame {
   position: relative;
@@ -334,11 +334,6 @@ body.fs-mode .fs-badge, body.fs-mode .fs-total { animation: badgeGlow 1.8s ease-
 .cascade-mult.show {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
-  animation: cmFloat 2.4s ease-in-out infinite alternate;
-}
-@keyframes cmFloat {
-  from { margin-left: -14px; }
-  to { margin-left: 14px; }
 }
 .cm-label {
   font-size: 10.5px; font-weight: 900; letter-spacing: 1.6px;

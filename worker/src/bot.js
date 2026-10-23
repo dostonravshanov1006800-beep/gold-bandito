@@ -13,6 +13,13 @@ async function tg(env, method, payload) {
   });
 }
 
+const APP_V = 27;
+
+function appUrl(env) {
+  const base = String(env.WEBAPP_URL || '');
+  return base + (base.includes('?') ? '&' : '?') + 'v=' + APP_V;
+}
+
 function mainKeyboard(webappUrl) {
   return {
     resize_keyboard: true,
@@ -84,7 +91,7 @@ export async function handleUpdate(env, update) {
         'Стартовый баланс: 1000 G. Крути барабан кнопкой ниже.',
         'Сетка 5×4, 1,024 ways, каскады, вайлды из золотых рамок и фриспины с растущим множителем.',
       ].join('\n'),
-      reply_markup: mainKeyboard(env.WEBAPP_URL),
+      reply_markup: mainKeyboard(appUrl(env)),
     });
     return { ok: true };
   }
