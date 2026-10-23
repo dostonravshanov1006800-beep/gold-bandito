@@ -9,13 +9,13 @@ if (!API && tg && tg.showAlert) {
   setTimeout(() => tg.showAlert('Не задан apiBase в config.js — отредактируй файл после деплоя Worker.'), 300);
 }
 
-const PREMIUM = ['BANDIT', 'SKULL'];
 const WILD = 'WILD';
 const SCATTER = 'GUITAR';
 const CELL_COUNT = 20;
 
 const $ = (id) => document.getElementById(id);
 const grid = $('grid');
+const coinsLayer = $('coins-layer');
 
 const state = {
   balance: 0,
@@ -35,7 +35,7 @@ function toast(msg, isErr = false) {
   t.textContent = msg;
   t.className = 'toast' + (isErr ? ' err' : '');
   clearTimeout(t._h);
-  t._h = setTimeout(() => t.classList.add('hidden'), 2200);
+  t._h = setTimeout(() => t.classList.add('hidden'), 2400);
 }
 
 function setCell(idx, cellData, drop = false, delay = 0) {
@@ -44,7 +44,6 @@ function setCell(idx, cellData, drop = false, delay = 0) {
   const { sym, framed } = typeof cellData === 'string' ? { sym: cellData, framed: false } : cellData;
   const cls = [
     'cell',
-    PREMIUM.includes(sym) ? 'premium' : '',
     framed ? 'framed' : '',
     sym === WILD ? 'wild' : '',
     sym === SCATTER ? 'scatter' : '',
@@ -57,16 +56,16 @@ function setCell(idx, cellData, drop = false, delay = 0) {
 }
 
 function renderGrid(cells, drop = false) {
-  cells.forEach((c, idx) => setCell(idx, c, drop, drop ? (idx % 5) * 45 + Math.floor(idx / 5) * 35 : 0));
+  cells.forEach((c, idx) => setCell(idx, c, drop, drop ? (idx % 5) * 60 + Math.floor(idx / 5) * 50 : 0));
 }
 
 function randomGrid() {
   const ids = ['BANDIT', 'SKULL', 'TEQUILA', 'SOMBRERO', 'MARACAS', 'MONEYBAG',
     'CACTUS', 'DYNAMITE', 'PISTOL', 'SPUR', 'GEM', 'COIN'];
   return Array.from({ length: CELL_COUNT }, () => {
-    let r = Math.random();
+    const r = Math.random();
     if (r < 0.06) return { sym: SCATTER, framed: false };
-    return { sym: ids[Math.floor(Math.random() * ids.length)], framed: Math.random() < 0.04 };
+    return { sym: ids[Math.floor(Math.random() * ids.length)], framed: Math.random() < 0.05 };
   });
 }
 
@@ -87,18 +86,41 @@ function updateBalance(target) {
 
 function updateBonusUI() {
   const badge = $('fs-badge');
-  if (state.bonus && state.bonus.remaining > 0) {
-    badge.textContent = `Бонус: ${state.bonus.remaining} × ${state.bonus.multiplier}`;
+  const spinLabel = document.querySelector('#spin .spin-label');
+  const inBonus = !!(state.bonus && state.bonus.remaining > 0);
+  if (inBonus) {
+    $('fs-count').textContent = state.bonus.remaining;
+    $('fs-mult').textContent = '×' + state.bonus.multiplier;
     badge.classList.remove('hidden');
+    document.body.classList.add('fs-mode');
     $('spin').classList.add('free');
+    spinLabel.textContent = 'ФРИСПИН';
     $('bet-minus').disabled = true;
     $('bet-plus').disabled = true;
   } else {
     state.bonus = null;
     badge.classList.add('hidden');
+    document.body.classList.remove('fs-mode');
     $('spin').classList.remove('free');
+    spinLabel.textContent = 'КРУТИТЬ';
     $('bet-minus').disabled = false;
     $('bet-plus').disabled = false;
+  }
+}
+
+function flyCoins(n) {
+  const rect = grid.getBoundingClientRect();
+  const count = Math.min(14, 4 + n);
+  for (let i = 0; i < count; i++) {
+    const c = document.createElement('div');
+    c.className = 'coin-particle';
+    c.style.left = (20 + Math.random() * 60) + '%';
+    c.style.top = (30 + Math.random() * 40) + '%';
+    c.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+    c.style.setProperty('--dy', (120 + Math.random() * 160) + 'px');
+    c.style.animationDelay = (Math.random() * 200) + 'ms';
+    coinsLayer.appendChild(c);
+    setTimeout(() => c.remove(), 1300);
   }
 }
 
@@ -123,69 +145,93 @@ async function apiSpin(bet) {
 }
 
 // ---------- анимация раунда ----------
+async function showBanner(amount, mult, isFinal, big) {
+  const banner = $('win-banner');
+  const amountEl = $('win-amount');
+  const multEl = $('win-mult');
+  const fsEl = $('win-fs');
+  fsEl.classList.add('hidden');
+  amountEl.textContent = '+' + fmt(amount);
+  amountEl.classList.toggle('big', !!big);
+  amountEl.classList.remove('hidden');
+  if (mult > 1) { multEl.textContent = 'множитель ×' + mult; multEl.classList.remove('hidden'); }
+  else multEl.classList.add('hidden');
+  banner.classList.remove('hidden');
+  await sleep(isFinal ? 1400 : 620);
+  if (!isFinal) banner.classList.add('hidden');
+}
+
 async function animateSpin(result) {
+  $('last-win').textContent = '0';
   renderGrid(result.initialGrid, true);
-  await sleep(450);
+  await sleep(520);
+
+  let accWin = 0;
+  let lastMult = 1;
 
   for (const t of result.tumbles) {
+    accWin += t.win;
+    lastMult = Math.max(lastMult, t.multiplier || 1);
+
+    // подсветка выигрышных символов
     for (const idx of t.burns) grid.children[idx].classList.add('hit');
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     await sleep(430);
 
-    // вайлды из золотых рамок
+    // рамки превращаются в вайлдов
     if (t.wildsAt && t.wildsAt.length) {
       for (const idx of t.wildsAt) {
         const cell = grid.children[idx];
         if (cell) cell.classList.add('become-wild');
       }
-      await sleep(400);
+      await sleep(380);
     }
 
+    // сгорание
     for (const idx of t.burns) {
       grid.children[idx].classList.remove('hit');
       grid.children[idx].classList.add('burn');
     }
-    await sleep(320);
+    await sleep(340);
 
-    // вместо сгоревших — новые (включая вайлды из рамок)
-    for (const nc of t.newCells) setCell(nc.idx, nc, true, (nc.idx % 5) * 40);
-    // множитель фриспина обновляется на бейдже после каждого каскада
-    if (state.bonus && t.multiplier > 1) {
+    // падение новых
+    for (const nc of t.newCells) setCell(nc.idx, nc, true, (nc.idx % 5) * 45);
+
+    // накопленный выигрыш шага
+    $('last-win').textContent = fmt(accWin);
+    await sleep(120);
+    flyCoins(t.win);
+    await showBanner(accWin, t.multiplier || 1, false, false);
+
+    // множитель бонуса на бейдже
+    if (state.bonus && (t.multiplier || 1) > 1) {
       state.bonus.multiplier = Math.max(state.bonus.multiplier, t.multiplier);
       updateBonusUI();
     }
-    await sleep(400);
   }
+  $('win-banner').classList.add('hidden');
 
-  const banner = $('win-banner');
-  const amountEl = $('win-amount');
-  const multEl = $('win-mult');
-  const fsEl = $('win-fs');
-
+  // итоговый баннер
   if (result.totalWin > 0) {
     const big = result.totalWin >= betValue() * 20;
-    amountEl.textContent = '+' + fmt(result.totalWin) + ' G';
-    amountEl.classList.toggle('big', big);
-    multEl.classList.add('hidden');
-    fsEl.classList.add('hidden');
-    banner.classList.remove('hidden');
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-    await sleep(1200);
+    if (big && tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    flyCoins(result.totalWin / 10);
+    await showBanner(result.totalWin, lastMult, true, big);
   }
+  $('win-banner').classList.add('hidden');
 
-  // бонус: активация фриспинов или ретриггер
-  if (result.freeSpins > 0 || result.freeSpinsWon > 0) {
-    const total = result.freeSpinsWon || result.freeSpins;
-    amountEl.classList.add('hidden');
-    multEl.classList.add('hidden');
-    fsEl.textContent = total >= 12
-      ? total + ' фриспинов!'
-      : '+' + total + ' фриспинов!';
-    fsEl.classList.remove('hidden');
-    banner.classList.remove('hidden');
+  // фриспины: интро нового бонуса или ретриггер
+  const fsWon = result.freeSpinsWon || 0;
+  if (fsWon >= 10) {
+    const intro = $('fs-intro');
+    $('fs-intro-count').textContent = fsWon + ' вращений · множитель растёт';
+    intro.classList.remove('hidden');
     if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-    await sleep(1600);
+    await sleep(1800);
+    intro.classList.add('hidden');
+  } else if (fsWon > 0) {
+    toast('+' + fsWon + ' фриспинов');
   }
-  banner.classList.add('hidden');
 }
 
 function betValue() {
@@ -202,10 +248,12 @@ async function doSpin() {
   $('spin').classList.add('spinning');
   try {
     const result = await apiSpin(inBonus ? 0 : betValue());
+    const wasInBonus = inBonus;
     state.bonus = result.bonus && result.bonus.remaining > 0 ? result.bonus : null;
     updateBonusUI();
     await animateSpin(result);
     updateBalance(result.balance);
+    if (!inBonus && result.totalWin === 0 && !result.bonus) $('last-win').textContent = '0';
   } catch (e) {
     if (e.code === 'insufficient_funds') toast('Недостаточно голды', true);
     else if (e.message === 'unauthorized') toast('Открой приложение из Telegram', true);
@@ -221,11 +269,10 @@ async function doSpin() {
   // авто-режим: продолжаем, пока есть баланс (или фриспины)
   const stillInBonus = !!(state.bonus && state.bonus.remaining > 0);
   if (state.auto && (stillInBonus || state.balance >= betValue())) {
-    await sleep(600);
+    await sleep(500);
     if (state.auto) doSpin();
   } else if (stillInBonus && !state.auto) {
-    // подсказка: остались фриспины — предложи крутить
-    toast(`Фриспины: ${state.bonus.remaining} — жми «Крутить»`);
+    toast(`Фриспины: ${state.bonus.remaining} — жми «Фриспин»`);
   } else {
     state.auto = false;
     $('auto').classList.remove('on');
@@ -238,7 +285,6 @@ async function refreshState() {
     state.paytable = s.paytable || [];
     if (s.betSteps) state.betSteps = s.betSteps;
     state.bonus = s.bonus && s.bonus.remaining > 0 ? s.bonus : null;
-    updateBalance(s.balance);
     state.balance = s.balance;
     $('balance').textContent = fmt(s.balance);
     $('bet').textContent = fmt(betValue());

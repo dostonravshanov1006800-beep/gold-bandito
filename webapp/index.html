@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gold Bandito</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="style.css" />
@@ -10,142 +10,284 @@
 </head>
 <body>
 
-<!-- Символы слота (SVG, тёмная+золотая тема, без эмодзи) -->
-<svg width="0" height="0" style="position:absolute">
+<!-- ================= СИМВОЛЫ (мультяшный стиль Wild Bandito, градиенты) ================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="sym-BANDIT" viewBox="0 0 64 64">
-      <circle cx="32" cy="38" r="17" fill="#c98d4b"/>
-      <path d="M12 30 Q32 2 52 30 L46 34 H18 Z" fill="#8a5a2b"/>
-      <path d="M22 36 Q32 32 42 36 L40 46 Q32 50 24 46 Z" fill="#2b2b2b"/>
-      <rect x="20" y="35" width="24" height="3.5" rx="1.5" fill="#171512"/>
-      <circle cx="26" cy="42" r="2" fill="#fff"/><circle cx="38" cy="42" r="2" fill="#fff"/>
-      <circle cx="32" cy="13" r="4.5" fill="#f5c542"/>
+    <linearGradient id="g-gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe9a3"/><stop offset=".45" stop-color="#f6c445"/>
+      <stop offset=".8" stop-color="#d99a23"/><stop offset="1" stop-color="#a86f14"/>
+    </linearGradient>
+    <linearGradient id="g-gold2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff3c9"/><stop offset="1" stop-color="#e8b93a"/>
+    </linearGradient>
+    <linearGradient id="g-wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a06a38"/><stop offset="1" stop-color="#5d3a1c"/>
+    </linearGradient>
+    <linearGradient id="g-bone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdf4"/><stop offset="1" stop-color="#e7dcc0"/>
+    </linearGradient>
+    <linearGradient id="g-teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7be3d2"/><stop offset="1" stop-color="#2f9b8a"/>
+    </linearGradient>
+    <linearGradient id="g-violet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b78cf0"/><stop offset="1" stop-color="#6a3fb5"/>
+    </linearGradient>
+    <linearGradient id="g-red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e85d4a"/><stop offset="1" stop-color="#9c2c1e"/>
+    </linearGradient>
+    <linearGradient id="g-green" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fbf5a"/><stop offset="1" stop-color="#3f7d34"/>
+    </linearGradient>
+    <radialGradient id="g-glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#ffe9a3" stop-opacity=".9"/><stop offset="1" stop-color="#ffe9a3" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- БАНДИТ: скелет в сомбреро с маской -->
+    <symbol id="sym-BANDIT" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="82" rx="30" ry="6" fill="#000" opacity=".18"/>
+      <path d="M20 58 Q50 12 80 58 Q50 46 20 58 Z" fill="url(#g-wood)" stroke="#3a2210" stroke-width="2"/>
+      <path d="M12 60 Q50 44 88 60 Q50 78 12 60 Z" fill="url(#g-gold)" stroke="#7a5310" stroke-width="2"/>
+      <circle cx="50" cy="24" r="5" fill="url(#g-gold2)" stroke="#7a5310" stroke-width="1.5"/>
+      <ellipse cx="50" cy="74" rx="24" ry="20" fill="url(#g-bone)" stroke="#b9a97e" stroke-width="2"/>
+      <path d="M28 66 Q50 60 72 66 L69 79 Q50 88 31 79 Z" fill="#2b241c"/>
+      <circle cx="41" cy="73" r="4.5" fill="#fff"/><circle cx="59" cy="73" r="4.5" fill="#fff"/>
+      <circle cx="41" cy="73" r="2" fill="#201812"/><circle cx="59" cy="73" r="2" fill="#201812"/>
+      <path d="M43 83 q3 3 5 0 M52 83 q3 3 5 0" stroke="#201812" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <rect x="41" y="70.5" width="18" height="3" rx="1.5" fill="#171310"/>
+      <path d="M36 64 q14 -5 28 0" stroke="#8a5a2b" stroke-width="1.4" fill="none"/>
     </symbol>
-    <symbol id="sym-SKULL" viewBox="0 0 64 64">
-      <path d="M32 8 A20 20 0 0 1 52 28 V38 A8 8 0 0 1 44 46 H40 V52 A4 4 0 0 1 36 56 H28 A4 4 0 0 1 24 52 V46 H20 A8 8 0 0 1 12 38 V28 A20 20 0 0 1 32 8 Z" fill="#f5e9c8"/>
-      <circle cx="24" cy="30" r="5.5" fill="#171512"/>
-      <circle cx="40" cy="30" r="5.5" fill="#171512"/>
-      <path d="M32 38 L28 44 H36 Z" fill="#171512"/>
-      <path d="M28 50 v6 M36 50 v6" stroke="#f5e9c8" stroke-width="4"/>
-      <path d="M18 12 Q32 2 46 12 L44 16 Q32 8 20 16 Z" fill="#8a5a2b"/>
+
+    <!-- ЧЕРЕП-калавера с венком -->
+    <symbol id="sym-SKULL" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="88" rx="28" ry="6" fill="#000" opacity=".18"/>
+      <path d="M50 22 A26 24 0 0 1 76 48 V60 A9 9 0 0 1 67 69 H60 V78 A5 5 0 0 1 55 83 H45 A5 5 0 0 1 40 78 V69 H33 A9 9 0 0 1 24 60 V48 A26 24 0 0 1 50 22 Z" fill="url(#g-bone)" stroke="#b9a97e" stroke-width="2"/>
+      <circle cx="40" cy="52" r="7" fill="#241c14"/><circle cx="60" cy="52" r="7" fill="#241c14"/>
+      <circle cx="42" cy="50" r="2" fill="#ffd97a"/><circle cx="62" cy="50" r="2" fill="#ffd97a"/>
+      <path d="M50 58 L45 66 H55 Z" fill="#241c14"/>
+      <path d="M44 72 v8 M50 72 v10 M56 72 v8" stroke="#b9a97e" stroke-width="2.6"/>
+      <circle cx="30" cy="30" r="6" fill="#f2789f"/><circle cx="70" cy="30" r="6" fill="#f2789f"/>
+      <circle cx="50" cy="22" r="7" fill="#ffb03a"/>
+      <path d="M24 40 q-6 6 -2 12 M76 40 q6 6 2 12" stroke="#f2789f" stroke-width="2.4" fill="none"/>
+      <path d="M33 44 q4 3 8 1 M59 45 q4 3 8 1" stroke="#8fd0e8" stroke-width="2" fill="none"/>
     </symbol>
-    <symbol id="sym-GUITAR" viewBox="0 0 64 64">
-      <path d="M40 6 L50 16 L32 34 L28 30 Z" fill="#8a5a2b"/>
-      <rect x="22" y="4" width="10" height="6" rx="2" fill="#3b3630"/>
-      <path d="M14 34 A14 14 0 1 0 34 54 A14 14 0 1 0 14 34" fill="#f5c542"/>
-      <circle cx="24" cy="44" r="5" fill="#171512"/>
-      <circle cx="24" cy="44" r="2" fill="#f5c542"/>
-      <circle cx="38" cy="30" r="3.5" fill="#f5c542"/>
-      <path d="M16 38 Q24 34 30 42" stroke="#b8860b" stroke-width="2" fill="none"/>
+
+    <!-- ТЕКИЛА: бутылка с лаймом -->
+    <symbol id="sym-TEQUILA" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="88" rx="26" ry="6" fill="#000" opacity=".18"/>
+      <rect x="44" y="10" width="12" height="12" rx="2" fill="url(#g-wood)" stroke="#3a2210" stroke-width="1.5"/>
+      <path d="M44 22 C44 34 34 40 34 58 V78 A8 8 0 0 0 42 86 H58 A8 8 0 0 0 66 78 V58 C66 40 56 34 56 22 Z" fill="url(#g-green)" stroke="#2c5a26" stroke-width="2.5"/>
+      <path d="M40 34 C36 44 36 50 36 58" stroke="#bfe8a9" stroke-width="3" fill="none" opacity=".7"/>
+      <rect x="36" y="60" width="28" height="20" rx="3" fill="url(#g-gold)" stroke="#7a5310" stroke-width="1.6"/>
+      <path d="M40 68 h20 M40 74 h14" stroke="#7a5310" stroke-width="1.8"/>
+      <circle cx="76" cy="66" r="11" fill="url(#g-teal)" stroke="#1f6e60" stroke-width="2"/>
+      <path d="M76 55 v22 M65 66 h22" stroke="#1f6e60" stroke-width="1.6"/>
+      <path d="M70 78 q6 8 12 0" fill="url(#g-green)" stroke="#2c5a26" stroke-width="1.5"/>
     </symbol>
-    <symbol id="sym-TEQUILA" viewBox="0 0 64 64">
-      <rect x="27" y="8" width="10" height="10" rx="2" fill="#3b5e3b"/>
-      <path d="M27 18 C27 26 21 30 21 42 V52 A4 4 0 0 0 25 56 H39 A4 4 0 0 0 43 52 V42 C43 30 37 26 37 18 Z" fill="#4e7d4e"/>
-      <rect x="23" y="40" width="18" height="12" rx="2" fill="#e8d9a0"/>
-      <path d="M26 44 h12 M26 48 h8" stroke="#8a5a2b" stroke-width="2"/>
+
+    <!-- СОМБРЕРО -->
+    <symbol id="sym-SOMBRERO" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="78" rx="42" ry="15" fill="url(#g-wood)" stroke="#3a2210" stroke-width="2.5"/>
+      <ellipse cx="50" cy="73" rx="42" ry="14" fill="#b57a42" stroke="#3a2210" stroke-width="2"/>
+      <path d="M22 72 A28 36 0 0 1 78 72 L78 76 Q50 70 22 76 Z" fill="#8a5a2b" stroke="#3a2210" stroke-width="2"/>
+      <path d="M14 70 Q50 60 86 70" stroke="url(#g-gold)" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M30 64 Q50 40 70 64" fill="#a06a38" stroke="#3a2210" stroke-width="2"/>
+      <circle cx="50" cy="42" r="6" fill="url(#g-gold2)" stroke="#7a5310" stroke-width="1.5"/>
+      <path d="M26 76 l4 4 M38 78 l2 5 M62 78 l-2 5 M74 76 l-4 4" stroke="#7a5310" stroke-width="2"/>
     </symbol>
-    <symbol id="sym-SOMBRERO" viewBox="0 0 64 64">
-      <ellipse cx="32" cy="40" rx="26" ry="10" fill="#c98d4b"/>
-      <path d="M18 40 A14 20 0 0 1 46 40 L46 44 H18 Z" fill="#8a5a2b"/>
-      <path d="M14 42 Q32 36 50 42" stroke="#f5c542" stroke-width="3" fill="none"/>
-      <circle cx="32" cy="26" r="4" fill="#f5c542"/>
+
+    <!-- МАРАКАСЫ -->
+    <symbol id="sym-MARACAS" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="90" rx="28" ry="5" fill="#000" opacity=".18"/>
+      <path d="M32 18 A13 15 0 0 1 58 18 L55 34 H35 Z" fill="#c94f3d" stroke="#7a2417" stroke-width="2"/>
+      <ellipse cx="45" cy="18" rx="13" ry="15" fill="#e06a52" stroke="#7a2417" stroke-width="2"/>
+      <path d="M38 14 h14 M38 22 h14" stroke="#ffe0b0" stroke-width="2.4"/>
+      <path d="M45 33 L40 62" stroke="url(#g-wood)" stroke-width="7" stroke-linecap="round"/>
+      <ellipse cx="68" cy="24" rx="13" ry="15" fill="#3f8f6f" stroke="#1f5c42" stroke-width="2"/>
+      <path d="M61 20 h14 M61 28 h14" stroke="#ffe0b0" stroke-width="2.4"/>
+      <path d="M68 39 L72 68" stroke="url(#g-wood)" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="40" cy="66" r="4" fill="url(#g-gold2)"/><circle cx="72" cy="72" r="4" fill="url(#g-gold2)"/>
+      <path d="M34 74 h12 M34 78 h12 M64 80 h12 M64 84 h12" stroke="#5d3a1c" stroke-width="2"/>
     </symbol>
-    <symbol id="sym-MARACAS" viewBox="0 0 64 64">
-      <ellipse cx="22" cy="20" rx="9" ry="11" fill="#c98d4b"/>
-      <ellipse cx="42" cy="20" rx="9" ry="11" fill="#8a5a2b"/>
-      <path d="M22 30 L18 56" stroke="#c98d4b" stroke-width="6" stroke-linecap="round"/>
-      <path d="M42 30 L46 56" stroke="#8a5a2b" stroke-width="6" stroke-linecap="round"/>
-      <path d="M17 14 h10 M17 20 h10 M17 26 h10" stroke="#6e4722" stroke-width="2"/>
-      <path d="M37 14 h10 M37 20 h10 M37 26 h10" stroke="#5a3a1d" stroke-width="2"/>
+
+    <!-- МЕШОК ЗОЛОТА -->
+    <symbol id="sym-MONEYBAG" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="88" rx="30" ry="6" fill="#000" opacity=".18"/>
+      <path d="M38 16 H62 L66 28 C76 36 80 52 76 66 A14 14 0 0 1 60 82 H40 A14 14 0 0 1 24 66 C20 52 24 36 34 28 Z" fill="url(#g-wood)" stroke="#3a2210" stroke-width="2.5"/>
+      <path d="M36 12 H64 L68 24 H32 Z" fill="#7a4a20" stroke="#3a2210" stroke-width="2"/>
+      <circle cx="50" cy="52" r="14" fill="url(#g-gold)" stroke="#7a5310" stroke-width="2"/>
+      <path d="M50 42 V62 M41 47 H59" stroke="#5d3a1c" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M42 70 q8 6 16 0" stroke="#ffe0b0" stroke-width="2" fill="none" opacity=".6"/>
+      <circle cx="66" cy="30" r="5" fill="url(#g-gold2)" stroke="#7a5310" stroke-width="1.2"/>
     </symbol>
-    <symbol id="sym-MONEYBAG" viewBox="0 0 64 64">
-      <path d="M22 14 H42 L46 24 C52 30 54 40 50 48 A12 12 0 0 1 32 56 A12 12 0 0 1 14 48 C10 40 12 30 18 24 Z" fill="#d9b25f"/>
-      <path d="M26 12 H38 L40 20 H24 Z" fill="#8a5a2b"/>
-      <circle cx="32" cy="38" r="7" fill="#6e4722"/>
-      <path d="M32 31 V45 M26 38 H38" stroke="#f5c542" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- КАКТУС в горшке -->
+    <symbol id="sym-CACTUS" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="88" rx="26" ry="6" fill="#000" opacity=".18"/>
+      <path d="M42 68 H58 L56 84 H44 Z" fill="#c9784a" stroke="#7a3f1f" stroke-width="2"/>
+      <path d="M40 66 H60 L61 72 H39 Z" fill="url(#g-gold)" stroke="#7a5310" stroke-width="1.5"/>
+      <rect x="44" y="14" width="12" height="54" rx="6" fill="url(#g-green)" stroke="#2c5a26" stroke-width="2.5"/>
+      <path d="M44 34 h-9 a7 7 0 0 0 -7 7 v10 a6 6 0 0 0 6 6" fill="none" stroke="url(#g-green)" stroke-width="11" stroke-linecap="round"/>
+      <path d="M56 26 h9 a7 7 0 0 1 7 7 v14" fill="none" stroke="url(#g-green)" stroke-width="11" stroke-linecap="round"/>
+      <path d="M22 51 h6 M28 47 v6" stroke="#2c5a26" stroke-width="2"/>
+      <path d="M72 43 h6 M75 40 v6" stroke="#2c5a26" stroke-width="2"/>
+      <circle cx="50" cy="13" r="6" fill="#ffb03a"/><circle cx="50" cy="13" r="2.4" fill="#e86a9a"/>
     </symbol>
-    <symbol id="sym-CACTUS" viewBox="0 0 64 64">
-      <rect x="27" y="12" width="10" height="44" rx="5" fill="#3f7d4e"/>
-      <path d="M27 30 h-8 a6 6 0 0 0 -6 6 v6 a5 5 0 0 0 5 5 h9" fill="none" stroke="#3f7d4e" stroke-width="9" stroke-linecap="round"/>
-      <path d="M37 22 h8 a6 6 0 0 1 6 6 v10" fill="none" stroke="#3f7d4e" stroke-width="9" stroke-linecap="round"/>
-      <circle cx="32" cy="14" r="3" fill="#f5c542"/>
+
+    <!-- ДИНАМИТ -->
+    <symbol id="sym-DYNAMITE" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="88" rx="28" ry="6" fill="#000" opacity=".18"/>
+      <rect x="26" y="34" width="14" height="46" rx="4" fill="url(#g-red)" stroke="#6e1a10" stroke-width="2"/>
+      <rect x="44" y="30" width="14" height="50" rx="4" fill="url(#g-red)" stroke="#6e1a10" stroke-width="2"/>
+      <rect x="62" y="34" width="14" height="46" rx="4" fill="url(#g-red)" stroke="#6e1a10" stroke-width="2"/>
+      <rect x="24" y="46" width="54" height="8" fill="#3a2416" rx="2"/>
+      <path d="M51 30 C51 18 66 20 66 10" stroke="#b98a4f" stroke-width="3" fill="none"/>
+      <path d="M66 8 l-3 -6 M66 8 l5 -5 M66 8 l1 -8" stroke="#ffd54f" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="66" cy="8" r="4" fill="#ffdf6b"/>
+      <circle cx="66" cy="8" r="8" fill="url(#g-glow)"/>
+      <path d="M30 40 q3 -3 6 0 M48 36 q3 -3 6 0 M66 40 q3 -3 6 0" stroke="#ffb3a0" stroke-width="1.6" fill="none"/>
     </symbol>
-    <symbol id="sym-DYNAMITE" viewBox="0 0 64 64">
-      <rect x="20" y="22" width="12" height="34" rx="3" fill="#b3402e"/>
-      <rect x="36" y="22" width="12" height="34" rx="3" fill="#b3402e"/>
-      <rect x="20" y="30" width="28" height="6" fill="#2b2b2b"/>
-      <path d="M31 22 C31 12 41 14 41 6" stroke="#8a5a2b" stroke-width="3" fill="none"/>
-      <circle cx="41" cy="5" r="3.5" fill="#f5c542"/>
+
+    <!-- РЕВОЛЬВЕР -->
+    <symbol id="sym-PISTOL" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="84" rx="30" ry="6" fill="#000" opacity=".18"/>
+      <path d="M12 30 H82 V44 H66 L60 52 H34 L26 44 H12 Z" fill="#5a544a" stroke="#26221c" stroke-width="2.5"/>
+      <rect x="12" y="30" width="70" height="9" rx="3" fill="#7e766a" stroke="#26221c" stroke-width="1.6"/>
+      <path d="M30 44 L22 70 H38 L44 52" fill="url(#g-wood)" stroke="#3a2210" stroke-width="2"/>
+      <circle cx="44" cy="47" r="6" fill="#3d3830" stroke="#26221c" stroke-width="2"/>
+      <circle cx="44" cy="47" r="2.2" fill="url(#g-gold2)"/>
+      <path d="M60 52 L58 74 L70 70 L68 50 Z" fill="#5a544a" stroke="#26221c" stroke-width="2"/>
+      <circle cx="86" cy="37" r="3" fill="url(#g-gold)" stroke="#7a5310" stroke-width="1.4"/>
+      <path d="M18 35 h44" stroke="#9a9184" stroke-width="1.4" opacity=".8"/>
     </symbol>
-    <symbol id="sym-PISTOL" viewBox="0 0 64 64">
-      <path d="M8 22 H52 V32 H40 L36 40 H26 L22 32 H8 Z" fill="#8f877a"/>
-      <rect x="8" y="22" width="44" height="6" rx="2" fill="#b8b0a0"/>
-      <path d="M20 32 L14 48 H24 L28 40" fill="#6e4722"/>
-      <circle cx="32" cy="27" r="3" fill="#3b3630"/>
-    </symbol>
-    <symbol id="sym-SPUR" viewBox="0 0 64 64">
-      <circle cx="32" cy="32" r="10" fill="none" stroke="#f5c542" stroke-width="5"/>
-      <g stroke="#f5c542" stroke-width="5" stroke-linecap="round">
-        <path d="M32 14 v-8 M32 58 v-8 M14 32 h-8 M58 32 h-8"/>
+
+    <!-- ШПОРА -->
+    <symbol id="sym-SPUR" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="88" rx="24" ry="5" fill="#000" opacity=".18"/>
+      <circle cx="50" cy="46" r="17" fill="none" stroke="url(#g-gold)" stroke-width="7"/>
+      <circle cx="50" cy="46" r="17" fill="none" stroke="#7a5310" stroke-width="1.6" opacity=".6"/>
+      <path d="M50 62 l-4 12 h8 Z" fill="url(#g-gold)" stroke="#7a5310" stroke-width="1.5"/>
+      <g stroke="url(#g-gold)" stroke-width="7" stroke-linecap="round">
+        <path d="M50 14 v-4 M50 78 v4 M18 46 h-4 M82 46 h4"/>
       </g>
-      <g fill="#f5c542">
-        <circle cx="19" cy="19" r="4"/><circle cx="45" cy="19" r="4"/>
-        <circle cx="19" cy="45" r="4"/><circle cx="45" cy="45" r="4"/>
+      <g fill="url(#g-gold2)" stroke="#7a5310" stroke-width="1.4">
+        <circle cx="27" cy="23" r="5.5"/><circle cx="73" cy="23" r="5.5"/>
+        <circle cx="27" cy="69" r="5.5"/><circle cx="73" cy="69" r="5.5"/>
       </g>
+      <circle cx="50" cy="46" r="4" fill="url(#g-gold2)" stroke="#7a5310" stroke-width="1.4"/>
     </symbol>
-    <symbol id="sym-GEM" viewBox="0 0 64 64">
-      <path d="M22 12 H42 L54 28 L32 54 L10 28 Z" fill="#3fae9e"/>
-      <path d="M22 12 L32 28 L42 12 M10 28 H54 M32 28 L32 54" stroke="#2b7d72" stroke-width="2.5" fill="none"/>
-      <path d="M22 12 H28 L32 28 L10 28 Z" fill="#5ec4b4"/>
+
+    <!-- КАМЕНЬ -->
+    <symbol id="sym-GEM" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="86" rx="26" ry="6" fill="#000" opacity=".18"/>
+      <path d="M30 18 H70 L88 42 L50 86 L12 42 Z" fill="url(#g-violet)" stroke="#4a2d86" stroke-width="3"/>
+      <path d="M30 18 L50 42 L70 18 M12 42 H88 M50 42 L50 86" stroke="#4a2d86" stroke-width="2.4" fill="none"/>
+      <path d="M30 18 L38 42 L12 42 Z" fill="#cbb0f5" opacity=".8"/>
+      <path d="M50 42 L70 18 L88 42 Z" fill="#9a72e0" opacity=".7"/>
+      <path d="M42 52 q8 8 16 0" stroke="#e6d9fb" stroke-width="2" fill="none" opacity=".8"/>
     </symbol>
-    <symbol id="sym-COIN" viewBox="0 0 64 64">
-      <circle cx="32" cy="32" r="22" fill="#f5c542"/>
-      <circle cx="32" cy="32" r="17" fill="none" stroke="#c99b2e" stroke-width="3"/>
-      <path d="M32 20 V44 M24 26 H40 M24 38 H40" stroke="#6e4722" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+    <!-- МОНЕТА с черепом -->
+    <symbol id="sym-COIN" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="34" fill="url(#g-gold)" stroke="#8a5f12" stroke-width="4"/>
+      <circle cx="50" cy="50" r="27" fill="none" stroke="#a87718" stroke-width="2.4"/>
+      <path d="M50 30 A11 10 0 0 1 61 40 V46 A5 5 0 0 1 56 51 H54 V55 A3 3 0 0 1 51 58 H49 A3 3 0 0 1 46 55 V51 H44 A5 5 0 0 1 39 46 V40 A11 10 0 0 1 50 30 Z" fill="#9c6d14"/>
+      <circle cx="45.5" cy="42" r="2.6" fill="#f6c445"/><circle cx="54.5" cy="42" r="2.6" fill="#f6c445"/>
+      <path d="M50 47 l-2.6 3.6 h5.2 Z" fill="#f6c445"/>
+      <path d="M22 34 q-4 -10 6 -14 M78 34 q4 -10 -6 -14" stroke="#f6c445" stroke-width="3" fill="none"/>
+      <path d="M50 16 v-6 M50 90 v-6 M16 50 h-6 M90 50 h-6" stroke="#fff3c9" stroke-width="3" stroke-linecap="round" opacity=".85"/>
     </symbol>
-    <symbol id="sym-WILD" viewBox="0 0 64 64">
-      <circle cx="32" cy="32" r="26" fill="#171512" stroke="#f5c542" stroke-width="4"/>
-      <path d="M32 14 A15 15 0 0 1 47 29 V36 A6 6 0 0 1 41 42 H38 V46 A3 3 0 0 1 35 49 H29 A3 3 0 0 1 26 46 V42 H23 A6 6 0 0 1 17 36 V29 A15 15 0 0 1 32 14 Z" fill="#f5c542"/>
-      <circle cx="26" cy="30" r="4" fill="#171512"/>
-      <circle cx="38" cy="30" r="4" fill="#171512"/>
-      <path d="M32 36 L29 40 H35 Z" fill="#171512"/>
-      <path d="M20 12 Q32 4 44 12" stroke="#f5c542" stroke-width="3" fill="none"/>
+
+    <!-- ГИТАРА (скаттер) -->
+    <symbol id="sym-GUITAR" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="90" rx="30" ry="6" fill="#000" opacity=".22"/>
+      <rect x="46" y="8" width="8" height="10" rx="2" fill="#3a2c1c"/>
+      <path d="M48 16 L52 16 L52 40 H48 Z" fill="url(#g-wood)" stroke="#3a2210" stroke-width="1.6"/>
+      <path d="M24 48 A20 20 0 1 0 64 88 A20 20 0 1 0 24 48" fill="url(#g-gold)" stroke="#8a5f12" stroke-width="3"/>
+      <path d="M24 48 A20 20 0 1 0 64 88 A20 20 0 1 0 24 48" fill="#8a5f12" opacity=".25" transform="translate(3 3)"/>
+      <circle cx="44" cy="68" r="9" fill="#2b2016" stroke="#8a5f12" stroke-width="2.4"/>
+      <circle cx="44" cy="68" r="3.6" fill="url(#g-gold2)"/>
+      <path d="M40 64 q4 4 8 0 M40 72 q4 -4 8 0" stroke="#f6c445" stroke-width="1.6" fill="none"/>
+      <circle cx="58" cy="52" r="4" fill="#2b2016"/><circle cx="52" cy="58" r="3" fill="#2b2016"/>
+      <path d="M47 18 L51 14 M47 22 L51 18 M47 26 L51 22" stroke="#3a2210" stroke-width="1.8"/>
+      <path d="M30 84 q-8 6 -2 10 M60 84 q8 6 2 10" stroke="#e86a9a" stroke-width="2.4" fill="none"/>
+      <circle cx="50" cy="10" r="4" fill="#ffb03a"/>
     </symbol>
-    <!-- UI-иконки -->
+
+    <!-- ВАЙЛД: два револьвера -->
+    <symbol id="sym-WILD" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="40" fill="#241b10" stroke="url(#g-gold)" stroke-width="4"/>
+      <circle cx="50" cy="50" r="33" fill="none" stroke="#a87718" stroke-width="1.6" stroke-dasharray="4 3"/>
+      <g transform="rotate(-24 50 50)">
+        <path d="M18 44 H74 V54 H58 L52 62 H30 L24 54 H18 Z" fill="#5a544a" stroke="#171310" stroke-width="2.4"/>
+        <rect x="18" y="44" width="56" height="8" rx="3" fill="#8b8375" stroke="#171310" stroke-width="1.4"/>
+        <path d="M34 54 L28 72 H42 L46 62" fill="url(#g-wood)" stroke="#3a2210" stroke-width="2"/>
+        <circle cx="46" cy="58" r="4.4" fill="#3d3830" stroke="#171310" stroke-width="1.6"/>
+      </g>
+      <g transform="rotate(24 50 50)">
+        <path d="M18 44 H74 V54 H58 L52 62 H30 L24 54 H18 Z" fill="#4c463d" stroke="#171310" stroke-width="2.4"/>
+        <rect x="18" y="44" width="56" height="8" rx="3" fill="#7e766a" stroke="#171310" stroke-width="1.4"/>
+        <path d="M34 54 L28 72 H42 L46 62" fill="url(#g-wood)" stroke="#3a2210" stroke-width="2"/>
+        <circle cx="46" cy="58" r="4.4" fill="#3d3830" stroke="#171310" stroke-width="1.6"/>
+      </g>
+      <path d="M26 78 Q50 92 74 78 L72 88 Q50 98 28 88 Z" fill="url(#g-gold)" stroke="#7a5310" stroke-width="2"/>
+      <text x="50" y="89" font-size="13" font-weight="800" font-family="Georgia, serif" fill="#5d3a1c" text-anchor="middle" letter-spacing="1.5">WILD</text>
+      <circle cx="50" cy="26" r="5" fill="#ffd54f"/>
+    </symbol>
+
+    <!-- UI-иконки (iOS-стиль, тонкие линии) -->
     <symbol id="ui-coin" viewBox="0 0 64 64">
-      <circle cx="32" cy="32" r="22" fill="#f5c542"/>
-      <circle cx="32" cy="32" r="17" fill="none" stroke="#c99b2e" stroke-width="3"/>
-      <path d="M32 20 V44 M24 26 H40 M24 38 H40" stroke="#6e4722" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <circle cx="32" cy="32" r="21" fill="url(#g-gold)" stroke="#8a5f12" stroke-width="3"/>
+      <circle cx="32" cy="32" r="14" fill="none" stroke="#a87718" stroke-width="2"/>
+      <path d="M32 24 V40 M26 28 H38 M26 36 H38" stroke="#5d3a1c" stroke-width="3" stroke-linecap="round" fill="none"/>
     </symbol>
     <symbol id="ui-play" viewBox="0 0 64 64">
-      <path d="M24 16 L48 32 L24 48 Z" fill="currentColor"/>
+      <path d="M24 15 L50 32 L24 49 Z" fill="currentColor" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
     </symbol>
     <symbol id="ui-history" viewBox="0 0 64 64">
-      <circle cx="32" cy="34" r="18" fill="none" stroke="currentColor" stroke-width="5"/>
-      <path d="M32 24 V34 L40 40" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/>
-      <path d="M10 14 L20 6 M54 6 L44 6 M20 6 V14" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <circle cx="32" cy="33" r="19" fill="none" stroke="currentColor" stroke-width="4.5"/>
+      <path d="M32 24 V33 L40 39" stroke="currentColor" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      <path d="M25 8 h14" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/>
     </symbol>
     <symbol id="ui-info" viewBox="0 0 64 64">
-      <circle cx="32" cy="32" r="20" fill="none" stroke="currentColor" stroke-width="5"/>
-      <circle cx="32" cy="22" r="3.5" fill="currentColor"/>
-      <path d="M32 30 V46" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="32" cy="32" r="20" fill="none" stroke="currentColor" stroke-width="4.5"/>
+      <circle cx="32" cy="22" r="3.2" fill="currentColor"/>
+      <path d="M32 30 V45" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/>
     </symbol>
     <symbol id="ui-minus" viewBox="0 0 64 64"><path d="M14 32 H50" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></symbol>
     <symbol id="ui-plus" viewBox="0 0 64 64"><path d="M32 14 V50 M14 32 H50" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></symbol>
     <symbol id="ui-auto" viewBox="0 0 64 64">
-      <path d="M32 6 A26 26 0 1 1 10 20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
-      <path d="M10 6 V20 H24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M24 34 L32 42 L44 26" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M32 6 A26 26 0 1 1 9 22" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+      <path d="M9 6 V22 H25" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M24 34 L31 41 L44 25" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="ui-flame" viewBox="0 0 64 64">
+      <path d="M32 6 C38 18 48 22 48 38 A16 16 0 0 1 16 38 C16 30 22 26 24 18 C27 24 30 25 32 22 C33 17 32 11 32 6 Z" fill="url(#g-gold)" stroke="#c77e18" stroke-width="2.4"/>
     </symbol>
   </defs>
 </svg>
 
-<!-- ЭКРАН: ИГРА -->
+<!-- ================= ЭКРАН: ИГРА ================= -->
 <div id="screen-game" class="screen active">
+
+  <!-- Сцена: мексиканская ночь -->
+  <div class="scene" aria-hidden="true">
+    <div class="sky"></div>
+    <div class="moon"></div>
+    <div class="stars"></div>
+    <div class="pueblo"></div>
+    <div class="banner-papel"></div>
+    <div class="marigold-strip"></div>
+  </div>
+
   <header class="topbar">
-    <div class="brand">Gold Bandito</div>
+    <div class="logo">
+      <span class="logo-gold">GOLD</span><span class="logo-bandito">BANDITO</span>
+    </div>
     <div class="topbar-right">
-      <div id="fs-badge" class="fs-badge hidden">Бонус ×1</div>
+      <div id="fs-badge" class="fs-badge hidden">
+        <span class="fs-star">★</span><span id="fs-count">12</span>
+        <span class="fs-x" id="fs-mult">×1</span>
+      </div>
       <div class="balance-chip">
         <svg class="chip-coin"><use href="#ui-coin"/></svg>
         <span id="balance">—</span>
@@ -153,37 +295,58 @@
     </div>
   </header>
 
-  <div class="board-wrap">
-    <div id="grid" class="grid"></div>
-    <div id="win-banner" class="win-banner hidden">
-      <div id="win-amount" class="win-amount">+0</div>
-      <div id="win-mult" class="win-mult hidden">множитель ×1</div>
-      <div id="win-fs" class="win-fs hidden">12 фриспинов!</div>
+  <div class="board-outer">
+    <div class="board-frame">
+      <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+      <div class="frame-corner bl"></div><div class="frame-corner br"></div>
+      <div class="board-wrap">
+        <div id="grid" class="grid"></div>
+        <div id="win-banner" class="win-banner hidden">
+          <div id="win-amount" class="win-amount">+0</div>
+          <div id="win-mult" class="win-mult hidden">×1</div>
+          <div id="win-fs" class="win-fs hidden">12 фриспинов!</div>
+        </div>
+        <div id="fs-intro" class="fs-intro hidden">
+          <div class="fs-intro-title">ФРИСПИНЫ!</div>
+          <div class="fs-intro-sub" id="fs-intro-count">12 вращений</div>
+        </div>
+        <div id="coins-layer" class="coins-layer" aria-hidden="true"></div>
+      </div>
     </div>
   </div>
 
   <div class="controls">
-    <div class="bet-box">
-      <button id="bet-minus" class="bet-btn" aria-label="Меньше"><svg><use href="#ui-minus"/></svg></button>
-      <div class="bet-value"><svg class="bet-coin"><use href="#ui-coin"/></svg><span id="bet">100</span></div>
-      <button id="bet-plus" class="bet-btn" aria-label="Больше"><svg><use href="#ui-plus"/></svg></button>
+    <div class="ctl-panel bet-panel">
+      <span class="ctl-label">СТАВКА</span>
+      <div class="bet-box">
+        <button id="bet-minus" class="bet-btn" aria-label="Меньше"><svg><use href="#ui-minus"/></svg></button>
+        <div class="bet-value"><span id="bet">100</span></div>
+        <button id="bet-plus" class="bet-btn" aria-label="Больше"><svg><use href="#ui-plus"/></svg></button>
+      </div>
     </div>
-    <button id="spin" class="spin-btn" aria-label="Крутить"><svg class="spin-icon"><use href="#ui-play"/></svg></button>
-    <button id="auto" class="auto-btn" aria-label="Авто"><svg class="auto-icon"><use href="#ui-auto"/></svg><span>АВТО</span></button>
+    <button id="spin" class="spin-btn" aria-label="Крутить">
+      <svg class="spin-icon"><use href="#ui-play"/></svg>
+      <span class="spin-label">КРУТИТЬ</span>
+    </button>
+    <div class="ctl-panel win-panel">
+      <span class="ctl-label">ВЫИГРЫШ</span>
+      <div class="win-value"><svg class="win-coin"><use href="#ui-coin"/></svg><span id="last-win">0</span></div>
+      <button id="auto" class="auto-btn" aria-label="Авто"><svg class="auto-icon"><use href="#ui-auto"/></svg><span>АВТО</span></button>
+    </div>
   </div>
 </div>
 
-<!-- ЭКРАН: ИСТОРИЯ -->
+<!-- ================= ЭКРАН: ИСТОРИЯ ================= -->
 <div id="screen-history" class="screen">
-  <header class="topbar"><div class="brand">История спинов</div></header>
+  <header class="topbar"><div class="brand">История</div></header>
   <ul id="history-list" class="history-list"></ul>
 </div>
 
-<!-- ЭКРАН: ИНФО -->
+<!-- ================= ЭКРАН: ИНФО ================= -->
 <div id="screen-info" class="screen">
   <header class="topbar"><div class="brand">Как играть</div></header>
   <div class="info-body">
-    <p><b>Сетка 5×4, 1,024 ways.</b> Выигрыш — 3 и более одинаковых символа
+    <p><b>Сетка 5×4, 1 024 ways.</b> Выигрыш — 3 и более одинаковых символа
     на барабанах подряд слева направо. Расположение в столбце не важно.</p>
     <p>Выигрышные символы сгорают, сверху падают новые (<b>каскад</b>).
     Каскады идут, пока выпадают выигрыши.</p>
@@ -194,11 +357,11 @@
     и он не сбрасывается до конца бонуса.</p>
     <h3>Таблица выплат (×ставка)</h3>
     <table id="paytable" class="paytable"></table>
-    <p class="muted">Отдача (RTP) ≈ 96.7%, как у оригинала Wild Bandito.</p>
+    <p class="muted">Механика — точная копия Wild Bandito (PG Soft). RTP ≈ 96.7%.</p>
   </div>
 </div>
 
-<!-- ТАБ-БАР -->
+<!-- ================= ТАБ-БАР ================= -->
 <nav class="tabbar">
   <button class="tab active" data-tab="game"><svg><use href="#ui-play"/></svg><span>Игра</span></button>
   <button class="tab" data-tab="history"><svg><use href="#ui-history"/></svg><span>История</span></button>
