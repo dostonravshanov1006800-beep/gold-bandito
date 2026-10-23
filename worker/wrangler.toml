@@ -19,3 +19,7 @@ ALLOWED_ORIGINS = "https://dostonravshanov1006800-beep.github.io,http://localhos
 #   BOT_TOKEN     — токен @masons_agent
 #   ADMIN_IDS     — Telegram ID админов через запятую
 #   WEBHOOK_SECRET — случайная строка для проверки webhook
+
+[triggers]
+# Самопроверка вебхука каждый час (автовосстановление)
+crons = ["0 * * * *"]

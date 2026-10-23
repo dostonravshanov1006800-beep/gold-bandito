@@ -54,6 +54,23 @@ function json(env, data, status = 200) {
   });
 }
 
+// URL собственного вебхука (для самопроверки)
+const SELF_HOOK = 'https://gold-bandito.dostonravshanov1006800.workers.dev/api/telegram';
+
+// Самовосстановление вебхука: если Telegram видит ошибки/очередь — переустанавливаем с секретом
+async function selfHealWebhook(env) {
+  const api = 'https://api.telegram.org/bot' + env.BOT_TOKEN;
+  const info = await (await fetch(api + '/getWebhookInfo')).json();
+  const r = info.ok ? info.result : null;
+  const bad = !r || r.url !== SELF_HOOK || r.last_error_message || (r.pending_update_count || 0) > 50;
+  if (!bad) return 'ok';
+  await fetch(api + '/setWebhook', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: SELF_HOOK, secret_token: env.WEBHOOK_SECRET, allowed_updates: ['message', 'callback_query'], max_connections: 40 }),
+  });
+  return 'healed';
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
