@@ -22,114 +22,6 @@ if (!API && tg && tg.showAlert) {
   setTimeout(() => tg.showAlert('Не задан apiBase в config.js — отредактируй файл после деплоя Worker.'), 300);
 }
 
-const DEMO = /[?&]demo=1/.test(location.search);
-
-// ---------- демо-режим (?demo=1): локальный движок-заглушка ----------
-const DEMO_SYMS = ['BANDIT','SKULL','TEQUILA','SOMBRERO','MARACAS','MONEYBAG','CACTUS','DYNAMITE','PISTOL','SPUR','GEM','COIN'];
-const DEMO_PAYS = { BANDIT:3.4, SKULL:2.73, TEQUILA:1.64, SOMBRERO:1.23, MARACAS:0.82, MONEYBAG:0.75, CACTUS:0.61, DYNAMITE:0.47, PISTOL:0.55, SPUR:0.38, GEM:0.41, COIN:0.34 };
-
-function demoGrid(rng) {
-  return Array.from({ length: 20 }, () => {
-    if (rng() < 0.07) return { sym: 'GUITAR', framed: false };
-    return { sym: DEMO_SYMS[Math.floor(rng() * DEMO_SYMS.length)], framed: rng() < 0.06 };
-  });
-}
-
-function demoWins(g) {
-  const out = [];
-  for (const sym of DEMO_SYMS) {
-    let k = 0;
-    for (let c = 0; c < 5; c++) {
-      let has = false;
-      for (let r = 0; r < 4; r++) {
-        const cc = g[c + r * 5];
-        if (cc && (cc.sym === sym || cc.sym === WILD)) has = true;
-      }
-      if (!has) break; k++;
-    }
-    if (k >= 3) out.push({ sym, k, pay: DEMO_PAYS[sym] * (k === 3 ? 1 : k === 4 ? 3.2 : 10) });
-  }
-  return out;
-}
-
-function demoSpin(bet) {
-  const rng = Math.random;
-  let g = demoGrid(rng);
-  const initialGrid = g.slice();
-  const tumbles = [];
-  let round = 0;
-  while (round++ < 12) {
-    const wins = demoWins(g);
-    if (!wins.length) break;
-    const burns = new Set();
-    let tw = 0;
-    for (const w of wins) {
-      tw += w.pay * bet;
-      for (let i = 0; i < 20; i++) {
-        if (i % 5 < w.k && g[i] && (g[i].sym === w.sym || g[i].sym === WILD)) burns.add(i);
-      }
-    }
-    // сдвиг вниз + новые сверху + рамки→вайлды
-    const next = new Array(20).fill(null);
-    const newCells = [], wildsAt = [];
-    for (let c = 0; c < 5; c++) {
-      const survivors = [];
-      for (let r = 0; r < 4; r++) {
-        const idx = c + r * 5;
-        if (!burns.has(idx)) survivors.push(g[idx]);
-        else if (g[idx].framed) wildsAt.push(idx);
-      }
-      let rr = 3;
-      for (let s = survivors.length - 1; s >= 0; s--) { next[c + rr * 5] = survivors[s]; rr--; }
-      for (; rr >= 0; rr--) {
-        const idx = c + rr * 5;
-        const nc = rng() < 0.07 ? { sym: 'GUITAR', framed: false }
-          : { sym: DEMO_SYMS[Math.floor(rng() * DEMO_SYMS.length)], framed: rng() < 0.06 };
-        next[idx] = nc; newCells.push({ idx, sym: nc.sym, framed: nc.framed });
-      }
-    }
-    for (const idx of wildsAt) {
-      next[idx] = { sym: WILD, framed: false };
-      newCells.push({ idx, sym: WILD, framed: false });
-    }
-    g = next;
-    tumbles.push({ burns: [...burns], newCells, wildsAt, multiplier: 1, win: Math.round(tw * 100) / 100 });
-  }
-  const totalWin = Math.round(tumbles.reduce((a, t) => a + t.win, 0) * 100) / 100;
-  const fs = state._demoFs;
-  let bonus = null, bonusEnd = null, freeSpinsWon = 0;
-  if (fs && fs.remaining > 0) {
-    fs.remaining -= 1;
-    fs.multiplier = Math.min(9, fs.multiplier + tumbles.filter(t => t.win > 0).length);
-    fs.total = Math.round(((fs.total || 0) + totalWin) * 100) / 100;
-    if (fs.remaining > 0) bonus = { remaining: fs.remaining, multiplier: fs.multiplier, bet: 100, total: fs.total };
-    else { bonusEnd = { total: fs.total }; state._demoFs = null; }
-  } else {
-    // демо: каждое 8-е вращение запускает бонус — чтобы фичу было видно
-    state._demoSpinN = (state._demoSpinN || 0) + 1;
-    if (state._demoSpinN % 8 === 0) {
-      freeSpinsWon = 12;
-      state._demoFs = { remaining: 12, multiplier: 1, total: 0 };
-      bonus = { remaining: 12, multiplier: 1, bet: 100, total: 0 };
-    }
-  }
-  return {
-    initialGrid, tumblesCount: tumbles.length,
-    totalWin,
-    tumbles: fs ? tumbles.map(t => ({ ...t, multiplier: fs.multiplier })) : tumbles,
-    scatters: 0, freeSpins: 0, freeSpinsWon,
-    balance: 1000, bonus, bonusEnd,
-  };
-}
-
-function demoState() {
-  return {
-    balance: 1000, spinsTotal: 5, isAdmin: true, nextBonusIn: 0, bonusAmount: 500,
-    bonus: null, history: [], betSteps: state.betSteps, startBalance: 1000,
-    paytable: DEMO_SYMS.map(s => ({ id: s, pays: { 3: DEMO_PAYS[s], 4: (DEMO_PAYS[s] * 3.2).toFixed(2), 5: (DEMO_PAYS[s] * 10).toFixed(2) } })),
-  };
-}
-
 // ---------- ежедневный бонус ----------
 async function claimBonus() {
   const btn = $('bonus-btn');
@@ -265,6 +157,10 @@ function toast(msg, isErr = false) {
   t._h = setTimeout(() => t.classList.add('hidden'), 2400);
 }
 
+// предзагрузка арта символов
+const PRELOAD = ['bandit','skull','tequila','sombrero','maracas','moneybag','cactus','dynamite','pistol','spur','gem','coin','wild','guitar'];
+PRELOAD.forEach(s => { const i = new Image(); i.src = `sym/${s}.png`; });
+
 function setCell(idx, cellData, drop = false, delay = 0) {
   const cell = grid.children[idx];
   if (!cell) return;
@@ -279,7 +175,7 @@ function setCell(idx, cellData, drop = false, delay = 0) {
   cell.className = cls;
   cell.style.animationDelay = drop ? `${delay}ms` : '';
   cell.dataset.sym = sym;
-  cell.innerHTML = `<svg><use href="#sym-${sym}"/></svg>`;
+  cell.innerHTML = `<img src="sym/${sym.toLowerCase()}.png" alt="" draggable="false">`;
 }
 
 function renderGrid(cells, drop = false) {
@@ -367,7 +263,6 @@ async function fetchJson(url, opts, tries = 2) {
 }
 
 async function apiGet(path) {
-  if (DEMO) return demoState();
   const initData = tg && tg.initData ? tg.initData : '';
   const res = await fetchJson(`${API}${path}?d=${encodeURIComponent(initData)}`);
   if (res.status === 401) throw new Error('unauthorized');
@@ -375,7 +270,6 @@ async function apiGet(path) {
 }
 
 async function apiSpin(bet) {
-  if (DEMO) return demoSpin(bet);
   const initData = tg && tg.initData ? tg.initData : '';
   const res = await fetchJson(`${API}/api/spin`, {
     method: 'POST',
@@ -638,13 +532,13 @@ function renderPaytable() {
     state.paytable.map(s => {
       const p = s.pays;
       return `<tr>
-        <td><svg><use href="#sym-${s.id}"/></svg></td>
+        <td><img src="sym/${s.id.toLowerCase()}.png" alt=""></td>
         <td class="symlbl">${SYM_NAMES[s.id] || s.id}</td>
         <td>${p[3] ?? '—'}</td><td>${p[4] ?? '—'}</td><td>${p[5] ?? '—'}</td>
       </tr>`;
     }).join('') +
-    `<tr><td><svg><use href="#sym-WILD"/></svg></td><td class="symlbl">Вайлд</td><td colspan="3" class="muted">заменяет любой символ</td></tr>
-     <tr><td><svg><use href="#sym-GUITAR"/></svg></td><td class="symlbl">Гитара</td><td colspan="3" class="muted">3+ → 12 фриспинов</td></tr>`;
+    `<tr><td><img src="sym/wild.png" alt=""></td><td class="symlbl">Вайлд</td><td colspan="3" class="muted">заменяет любой символ</td></tr>
+     <tr><td><img src="sym/guitar.png" alt=""></td><td class="symlbl">Гитара</td><td colspan="3" class="muted">3+ → 12 фриспинов</td></tr>`;
 }
 
 // ---------- обработчики ----------
