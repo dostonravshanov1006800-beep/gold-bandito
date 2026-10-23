@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gold Bandito</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
   <script src="config.js"></script>
 </head>
 <body>
@@ -248,6 +248,10 @@
       <path d="M32 24 V33 L40 39" stroke="currentColor" stroke-width="4.5" fill="none" stroke-linecap="round"/>
       <path d="M25 8 h14" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/>
     </symbol>
+    <symbol id="ui-spur" viewBox="0 0 64 64">
+      <circle cx="32" cy="34" r="12" fill="none" stroke="currentColor" stroke-width="4.5"/>
+      <path d="M32 10 v-6 M32 58 v-6 M8 34 h6 M50 34 h6" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/>
+    </symbol>
     <symbol id="ui-info" viewBox="0 0 64 64">
       <circle cx="32" cy="32" r="20" fill="none" stroke="currentColor" stroke-width="4.5"/>
       <circle cx="32" cy="22" r="3.2" fill="currentColor"/>
@@ -274,9 +278,14 @@
     <div class="sky"></div>
     <div class="moon"></div>
     <div class="stars"></div>
+    <div class="mist"></div>
+    <div class="mountains"></div>
     <div class="pueblo"></div>
+    <div class="church"><div class="church-tower"></div><i></i></div>
     <div class="banner-papel"></div>
+    <div class="fireflies"></div>
     <div class="marigold-strip"></div>
+    <div class="vignette"></div>
   </div>
 
   <header class="topbar">
@@ -288,9 +297,12 @@
         <span class="fs-star">★</span><span id="fs-count">12</span>
         <span class="fs-x" id="fs-mult">×1</span>
       </div>
-      <div class="balance-chip">
-        <svg class="chip-coin"><use href="#ui-coin"/></svg>
-        <span id="balance">—</span>
+      <div class="balance-wrap">
+        <div class="balance-chip">
+          <svg class="chip-coin"><use href="#ui-coin"/></svg>
+          <span id="balance">—</span>
+        </div>
+        <button id="bonus-btn" class="bonus-btn" aria-label="Ежедневный бонус"><svg><use href="#ui-plus"/></svg></button>
       </div>
     </div>
   </header>
@@ -361,15 +373,26 @@
   </div>
 </div>
 
+<!-- ================= ЭКРАН: АДМИН ================= -->
+<div id="screen-admin" class="screen">
+  <header class="topbar"><div class="brand">Админ-панель</div></header>
+  <div class="admin-body">
+    <div id="admin-stats" class="admin-stats"></div>
+    <h3 class="admin-h">Игроки</h3>
+    <ul id="admin-users" class="admin-users"></ul>
+  </div>
+</div>
+
 <!-- ================= ТАБ-БАР ================= -->
 <nav class="tabbar">
   <button class="tab active" data-tab="game"><svg><use href="#ui-play"/></svg><span>Игра</span></button>
   <button class="tab" data-tab="history"><svg><use href="#ui-history"/></svg><span>История</span></button>
   <button class="tab" data-tab="info"><svg><use href="#ui-info"/></svg><span>Инфо</span></button>
+  <button id="tab-admin" class="tab hidden" data-tab="admin"><svg><use href="#ui-spur"/></svg><span>Админ</span></button>
 </nav>
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

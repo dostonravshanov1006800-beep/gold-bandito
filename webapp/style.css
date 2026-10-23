@@ -42,7 +42,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     radial-gradient(120% 65% at 50% 118%, #ff9e58 0%, rgba(255,158,88,0) 55%),
     linear-gradient(180deg, #140b26 0%, #2c1550 42%, #5b2670 74%, #8a3d6b 100%);
 }
-.stars, .moon, .pueblo, .banner-papel, .marigold-strip { position: absolute; }
+.stars, .moon, .pueblo, .banner-papel, .marigold-strip, .mist, .mountains, .church, .fireflies, .vignette { position: absolute; }
 .stars {
   inset: 0;
   background-image:
@@ -85,6 +85,67 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   bottom: 0; left: 0; right: 0; height: 14px;
   background: repeating-radial-gradient(circle at 8px -6px, #ffb03a 0 5px, #e8842a 5px 7px, transparent 7px 16px);
   opacity: .5;
+}
+
+/* дальние горы */
+.mountains {
+  left: 0; right: 0; bottom: 16%; height: 26%;
+  background:
+    linear-gradient(180deg, rgba(84, 38, 110, .9), rgba(64, 27, 92, .9));
+  clip-path: polygon(0 74%, 7% 46%, 13% 60%, 21% 36%, 28% 58%, 36% 44%, 44% 66%,
+    52% 40%, 60% 60%, 68% 45%, 76% 64%, 84% 48%, 92% 62%, 100% 52%, 100% 100%, 0 100%);
+  opacity: .85;
+}
+/* миссия с подсвеченными окнами */
+.church {
+  left: 8%; bottom: 15.5%; width: 74px; height: 90px; opacity: .96;
+}
+.church::before { /* стена */
+  content: ""; position: absolute; inset: 34px 6px 0;
+  background: #1c0d33; border-radius: 4px 4px 0 0;
+}
+.church::after { /* окна-огоньки */
+  content: ""; position: absolute; inset: 44px 16px 10px;
+  background:
+    radial-gradient(4px 6px at 12px 8px, #ffcf6e 90%, transparent),
+    radial-gradient(4px 6px at 34px 14px, #ffcf6e 90%, transparent),
+    radial-gradient(4px 6px at 24px 30px, #ffcf6e 90%, transparent);
+}
+.church-tower {
+  position: absolute; left: 30px; top: 0; width: 22px; height: 44px;
+  background: #1c0d33; clip-path: polygon(50% 0, 100% 28%, 100% 100%, 0 100%, 0 28%);
+}
+.church i { position: absolute; left: 37px; top: -8px; width: 2px; height: 10px; background: #1c0d33; }
+.church i::before { content: ""; position: absolute; left: -3px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #ffcf6e; box-shadow: 0 0 8px 2px rgba(255, 207, 110, .8); }
+/* дымка */
+.mist {
+  inset: auto 0 12% 0; height: 30%;
+  background: linear-gradient(180deg, transparent, rgba(120, 60, 130, .22), transparent);
+  animation: mistDrift 14s ease-in-out infinite alternate;
+}
+@keyframes mistDrift { from { opacity: .5; } to { opacity: .9; } }
+/* светлячки */
+.fireflies { inset: 0; }
+.fireflies::before, .fireflies::after {
+  content: ""; position: absolute; width: 5px; height: 5px; border-radius: 50%;
+  background: #ffe9a3; box-shadow: 0 0 8px 3px rgba(255, 233, 163, .8);
+}
+.fireflies::before { left: 14%; top: 58%; animation: firefly1 7s ease-in-out infinite; }
+.fireflies::after { left: 84%; top: 48%; animation: firefly2 9s ease-in-out infinite; }
+@keyframes firefly1 {
+  0%, 100% { transform: translate(0,0); opacity: .1; }
+  30% { transform: translate(26px,-34px); opacity: 1; }
+  60% { transform: translate(-18px,-10px); opacity: .5; }
+}
+@keyframes firefly2 {
+  0%, 100% { transform: translate(0,0); opacity: .2; }
+  40% { transform: translate(-30px,-26px); opacity: 1; }
+  70% { transform: translate(12px,-40px); opacity: .4; }
+}
+/* виньетка поверх сцены, под контентом */
+.vignette {
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(10, 4, 22, .55) 100%);
 }
 
 /* свободные спины — рассвет */
@@ -138,14 +199,27 @@ body.fs-mode .sky {
 .fs-star { color: var(--win); }
 @keyframes fsPulse { 50% { box-shadow: 0 0 22px rgba(246,196,69,.8); } }
 
+.balance-wrap { display: flex; align-items: center; gap: 6px; }
+.bonus-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #5d3a1c;
+  background: radial-gradient(circle at 32% 28%, #fff3c9, #f6c445 48%, #d99a23 82%, #a86f14);
+  box-shadow: 0 0 0 2px #a86f14, 0 2px 8px rgba(0,0,0,.4), inset 0 2px 4px rgba(255,255,255,.6);
+}
+.bonus-btn:active { transform: scale(.9); }
+.bonus-btn svg { width: 16px; height: 16px; }
+.bonus-btn.claimed { filter: saturate(.4) brightness(.8); }
+
 /* ---------- РАМКА БАРАБАНОВ ---------- */
 .board-outer {
   position: relative; z-index: 4; flex: 1; min-height: 0;
   display: flex; align-items: center; justify-content: center;
-  padding: 4px 12px;
+  padding: 4px 10px;
 }
 .board-frame {
-  position: relative; width: 100%; max-width: 430px;
+  position: relative; width: 100%;
+  max-width: min(430px, 94vw, calc(var(--vh, 1vh) * 100 - 320px));
   padding: 10px;
   border-radius: 20px;
   background:
@@ -419,6 +493,39 @@ body.fs-mode .sky {
 .paytable svg { width: 30px; height: 30px; margin: 0 auto; }
 .paytable tr:last-child td { border-bottom: none; }
 
+/* ---------- АДМИН ---------- */
+.admin-body { overflow-y: auto; flex: 1; padding: 14px 16px 90px; }
+.admin-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;
+}
+.stat-card {
+  background: linear-gradient(180deg, rgba(58,30,79,.95), rgba(28,14,50,.95));
+  border: 1.5px solid rgba(246, 196, 69, .4);
+  border-radius: 12px; padding: 10px 12px;
+}
+.stat-card b { display: block; font-size: 18px; color: var(--gold-1); margin-top: 2px; }
+.stat-card span { font-size: 10px; letter-spacing: 1.2px; color: var(--muted); font-weight: 800; }
+.admin-h { color: var(--gold-1); font-size: 14px; margin: 12px 0 8px; }
+.admin-users { list-style: none; margin: 0; padding: 0; }
+.admin-users li {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 12px; margin-bottom: 6px; border-radius: 12px;
+  background: rgba(23, 11, 40, .8);
+  border: 1px solid rgba(178, 128, 255, .2);
+}
+.au-name { font-size: 13px; }
+.au-name small { display: block; color: var(--muted); font-size: 11px; }
+.au-bal { font-weight: 800; color: var(--gold-1); font-size: 13px; min-width: 60px; text-align: right; }
+.au-btn {
+  width: 32px; height: 32px; border-radius: 9px;
+  border: 1px solid rgba(246, 196, 69, .5); color: var(--gold-1);
+  background: rgba(246, 196, 69, .12);
+  display: flex; align-items: center; justify-content: center;
+}
+.au-btn:active { transform: scale(.92); }
+.au-btn svg { width: 14px; height: 14px; }
+.au-btn.minus { color: #ff9d8b; border-color: rgba(255, 123, 107, .5); background: rgba(255, 123, 107, .1); }
+
 /* ---------- ТАБ-БАР ---------- */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
@@ -449,7 +556,7 @@ body.fs-mode .sky {
 @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(12px); } }
 
 /* сцены истории/инфо — свой фон */
-#screen-history, #screen-info {
+#screen-history, #screen-info, #screen-admin {
   background: linear-gradient(180deg, #1d0e36 0%, #2c1550 100%);
   z-index: 1;
 }

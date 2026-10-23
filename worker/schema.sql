@@ -28,3 +28,6 @@ CREATE TABLE IF NOT EXISTS transactions (
   note TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
+
+-- 23.10.2026: ежедневный бонус (миграция для существующей базы)
+ALTER TABLE users ADD COLUMN last_bonus INTEGER NOT NULL DEFAULT 0;

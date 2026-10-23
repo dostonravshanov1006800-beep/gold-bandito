@@ -70,3 +70,36 @@ export async function stats(env) {
   ).first();
   return { ...row, ...sums };
 }
+
+// ---------- Ежедневный бонус ----------
+export async function claimBonus(env, telegramId, amount, cooldownMs) {
+  const now = Date.now();
+  const row = await env.DB.prepare('SELECT last_bonus FROM users WHERE telegram_id = ?')
+    .bind(telegramId).first();
+  if (!row) return { ok: false, wait: 0 };
+  if (now - (row.last_bonus || 0) < cooldownMs) {
+    return { ok: false, wait: cooldownMs - (now - (row.last_bonus || 0)) };
+  }
+  const res = await env.DB.prepare(
+    'UPDATE users SET balance = balance + ?, last_bonus = ? WHERE telegram_id = ?'
+  ).bind(amount, now, telegramId).run();
+  if (res.meta.changes !== 1) return { ok: false, wait: 0 };
+  await env.DB.prepare(
+    "INSERT INTO transactions (telegram_id, amount, kind, note) VALUES (?, ?, 'bonus', 'daily')"
+  ).bind(telegramId, amount).run();
+  return { ok: true, amount, balance: await getBalance(env, telegramId) };
+}
+
+export async function bonusState(env, telegramId) {
+  const row = await env.DB.prepare('SELECT last_bonus FROM users WHERE telegram_id = ?')
+    .bind(telegramId).first();
+  return row ? row.last_bonus || 0 : 0;
+}
+
+// ---------- Админ ----------
+export async function adminUsers(env) {
+  const { results } = await env.DB.prepare(
+    'SELECT telegram_id, username, balance, spins, fs_remaining, created_at FROM users ORDER BY balance DESC LIMIT 100'
+  ).all();
+  return results || [];
+}
