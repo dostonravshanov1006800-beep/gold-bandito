@@ -455,6 +455,10 @@ function betValue() {
   return state.bonus && state.bonus.bet ? state.bonus.bet : state.betSteps[state.betIndex];
 }
 
+function ensureExamples() {
+  if (!examplesReady) renderExamples();
+}
+
 async function doSpin() {
   if (state.spinning) return;
   const inBonus = !!(state.bonus && state.bonus.remaining > 0);
@@ -513,6 +517,7 @@ async function refreshState() {
     renderHistory(s.history || []);
     renderPaytable();
     renderExamples();
+    examplesReady = true;
     updateBonusUI();
     $('menu-item-admin').classList.toggle('hidden', !s.isAdmin);
     const bonusReady = (s.nextBonusIn || 0) <= 0;
@@ -521,8 +526,11 @@ async function refreshState() {
     $('retry-pill').classList.add('hidden');
   } catch (e) {
     renderGrid(randomGrid(), true);
+    const noInit = !(tg && tg.initData);
     const msg = e && e.message === 'unauthorized'
-      ? 'Сессия истекла. Закрой игру и открой заново из меню бота.'
+      ? (noInit
+        ? 'Открой игру через бота @masons_agent — кнопка «Играть» или меню бота.'
+        : 'Сессия истекла. Закрой игру и открой заново из меню бота.')
       : (navigator.onLine === false
         ? 'Нет интернета. Проверь соединение и попробуй ещё раз.'
         : 'Сервер не отвечает. Проверяем соединение…');
@@ -536,6 +544,8 @@ function retryConnect() {
   $('retry-pill').classList.add('hidden');
   refreshState();
 }
+
+let examplesReady = false;
 
 const EX_ARROW = '<svg class="mini-arrow" viewBox="0 0 24 24" fill="none"><path d="M4 12h15M13 5l7 7-7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
