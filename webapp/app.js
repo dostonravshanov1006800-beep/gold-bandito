@@ -140,8 +140,6 @@ async function claimBonus() {
     btn.disabled = false;
   }
 }
-$('bonus-btn').addEventListener('click', claimBonus);
-
 // ---------- админ-панель ----------
 async function adminApi(path, opts) {
   const initData = tg && tg.initData ? tg.initData : '';
@@ -590,3 +588,5 @@ refreshState();
 setTimeout(() => {
   if (!grid.children[0].innerHTML) renderGrid(randomGrid(), true);
 }, 800);
+
+$('bonus-btn').addEventListener('click', claimBonus);
