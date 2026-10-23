@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Gold Bandito</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <script src="config.js"></script>
+</head>
+<body>
+
+<!-- Символы слота (SVG, тёмная+золотая тема, без эмодзи) -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="sym-BANDIT" viewBox="0 0 64 64">
+      <circle cx="32" cy="38" r="17" fill="#c98d4b"/>
+      <path d="M12 30 Q32 2 52 30 L46 34 H18 Z" fill="#8a5a2b"/>
+      <path d="M22 36 Q32 32 42 36 L40 46 Q32 50 24 46 Z" fill="#2b2b2b"/>
+      <rect x="20" y="35" width="24" height="3.5" rx="1.5" fill="#171512"/>
+      <circle cx="26" cy="42" r="2" fill="#fff"/><circle cx="38" cy="42" r="2" fill="#fff"/>
+      <circle cx="32" cy="13" r="4.5" fill="#f5c542"/>
+    </symbol>
+    <symbol id="sym-SKULL" viewBox="0 0 64 64">
+      <path d="M32 8 A20 20 0 0 1 52 28 V38 A8 8 0 0 1 44 46 H40 V52 A4 4 0 0 1 36 56 H28 A4 4 0 0 1 24 52 V46 H20 A8 8 0 0 1 12 38 V28 A20 20 0 0 1 32 8 Z" fill="#f5e9c8"/>
+      <circle cx="24" cy="30" r="5.5" fill="#171512"/>
+      <circle cx="40" cy="30" r="5.5" fill="#171512"/>
+      <path d="M32 38 L28 44 H36 Z" fill="#171512"/>
+      <path d="M28 50 v6 M36 50 v6" stroke="#f5e9c8" stroke-width="4"/>
+      <path d="M18 12 Q32 2 46 12 L44 16 Q32 8 20 16 Z" fill="#8a5a2b"/>
+    </symbol>
+    <symbol id="sym-GUITAR" viewBox="0 0 64 64">
+      <path d="M40 6 L50 16 L32 34 L28 30 Z" fill="#8a5a2b"/>
+      <rect x="22" y="4" width="10" height="6" rx="2" fill="#3b3630"/>
+      <path d="M14 34 A14 14 0 1 0 34 54 A14 14 0 1 0 14 34" fill="#f5c542"/>
+      <circle cx="24" cy="44" r="5" fill="#171512"/>
+      <circle cx="24" cy="44" r="2" fill="#f5c542"/>
+      <circle cx="38" cy="30" r="3.5" fill="#f5c542"/>
+      <path d="M16 38 Q24 34 30 42" stroke="#b8860b" stroke-width="2" fill="none"/>
+    </symbol>
+    <symbol id="sym-TEQUILA" viewBox="0 0 64 64">
+      <rect x="27" y="8" width="10" height="10" rx="2" fill="#3b5e3b"/>
+      <path d="M27 18 C27 26 21 30 21 42 V52 A4 4 0 0 0 25 56 H39 A4 4 0 0 0 43 52 V42 C43 30 37 26 37 18 Z" fill="#4e7d4e"/>
+      <rect x="23" y="40" width="18" height="12" rx="2" fill="#e8d9a0"/>
+      <path d="M26 44 h12 M26 48 h8" stroke="#8a5a2b" stroke-width="2"/>
+    </symbol>
+    <symbol id="sym-SOMBRERO" viewBox="0 0 64 64">
+      <ellipse cx="32" cy="40" rx="26" ry="10" fill="#c98d4b"/>
+      <path d="M18 40 A14 20 0 0 1 46 40 L46 44 H18 Z" fill="#8a5a2b"/>
+      <path d="M14 42 Q32 36 50 42" stroke="#f5c542" stroke-width="3" fill="none"/>
+      <circle cx="32" cy="26" r="4" fill="#f5c542"/>
+    </symbol>
+    <symbol id="sym-MARACAS" viewBox="0 0 64 64">
+      <ellipse cx="22" cy="20" rx="9" ry="11" fill="#c98d4b"/>
+      <ellipse cx="42" cy="20" rx="9" ry="11" fill="#8a5a2b"/>
+      <path d="M22 30 L18 56" stroke="#c98d4b" stroke-width="6" stroke-linecap="round"/>
+      <path d="M42 30 L46 56" stroke="#8a5a2b" stroke-width="6" stroke-linecap="round"/>
+      <path d="M17 14 h10 M17 20 h10 M17 26 h10" stroke="#6e4722" stroke-width="2"/>
+      <path d="M37 14 h10 M37 20 h10 M37 26 h10" stroke="#5a3a1d" stroke-width="2"/>
+    </symbol>
+    <symbol id="sym-MONEYBAG" viewBox="0 0 64 64">
+      <path d="M22 14 H42 L46 24 C52 30 54 40 50 48 A12 12 0 0 1 32 56 A12 12 0 0 1 14 48 C10 40 12 30 18 24 Z" fill="#d9b25f"/>
+      <path d="M26 12 H38 L40 20 H24 Z" fill="#8a5a2b"/>
+      <circle cx="32" cy="38" r="7" fill="#6e4722"/>
+      <path d="M32 31 V45 M26 38 H38" stroke="#f5c542" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="sym-CACTUS" viewBox="0 0 64 64">
+      <rect x="27" y="12" width="10" height="44" rx="5" fill="#3f7d4e"/>
+      <path d="M27 30 h-8 a6 6 0 0 0 -6 6 v6 a5 5 0 0 0 5 5 h9" fill="none" stroke="#3f7d4e" stroke-width="9" stroke-linecap="round"/>
+      <path d="M37 22 h8 a6 6 0 0 1 6 6 v10" fill="none" stroke="#3f7d4e" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="32" cy="14" r="3" fill="#f5c542"/>
+    </symbol>
+    <symbol id="sym-DYNAMITE" viewBox="0 0 64 64">
+      <rect x="20" y="22" width="12" height="34" rx="3" fill="#b3402e"/>
+      <rect x="36" y="22" width="12" height="34" rx="3" fill="#b3402e"/>
+      <rect x="20" y="30" width="28" height="6" fill="#2b2b2b"/>
+      <path d="M31 22 C31 12 41 14 41 6" stroke="#8a5a2b" stroke-width="3" fill="none"/>
+      <circle cx="41" cy="5" r="3.5" fill="#f5c542"/>
+    </symbol>
+    <symbol id="sym-PISTOL" viewBox="0 0 64 64">
+      <path d="M8 22 H52 V32 H40 L36 40 H26 L22 32 H8 Z" fill="#8f877a"/>
+      <rect x="8" y="22" width="44" height="6" rx="2" fill="#b8b0a0"/>
+      <path d="M20 32 L14 48 H24 L28 40" fill="#6e4722"/>
+      <circle cx="32" cy="27" r="3" fill="#3b3630"/>
+    </symbol>
+    <symbol id="sym-SPUR" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="10" fill="none" stroke="#f5c542" stroke-width="5"/>
+      <g stroke="#f5c542" stroke-width="5" stroke-linecap="round">
+        <path d="M32 14 v-8 M32 58 v-8 M14 32 h-8 M58 32 h-8"/>
+      </g>
+      <g fill="#f5c542">
+        <circle cx="19" cy="19" r="4"/><circle cx="45" cy="19" r="4"/>
+        <circle cx="19" cy="45" r="4"/><circle cx="45" cy="45" r="4"/>
+      </g>
+    </symbol>
+    <symbol id="sym-GEM" viewBox="0 0 64 64">
+      <path d="M22 12 H42 L54 28 L32 54 L10 28 Z" fill="#3fae9e"/>
+      <path d="M22 12 L32 28 L42 12 M10 28 H54 M32 28 L32 54" stroke="#2b7d72" stroke-width="2.5" fill="none"/>
+      <path d="M22 12 H28 L32 28 L10 28 Z" fill="#5ec4b4"/>
+    </symbol>
+    <symbol id="sym-COIN" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="22" fill="#f5c542"/>
+      <circle cx="32" cy="32" r="17" fill="none" stroke="#c99b2e" stroke-width="3"/>
+      <path d="M32 20 V44 M24 26 H40 M24 38 H40" stroke="#6e4722" stroke-width="4" stroke-linecap="round" fill="none"/>
+    </symbol>
+    <symbol id="sym-WILD" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="26" fill="#171512" stroke="#f5c542" stroke-width="4"/>
+      <path d="M32 14 A15 15 0 0 1 47 29 V36 A6 6 0 0 1 41 42 H38 V46 A3 3 0 0 1 35 49 H29 A3 3 0 0 1 26 46 V42 H23 A6 6 0 0 1 17 36 V29 A15 15 0 0 1 32 14 Z" fill="#f5c542"/>
+      <circle cx="26" cy="30" r="4" fill="#171512"/>
+      <circle cx="38" cy="30" r="4" fill="#171512"/>
+      <path d="M32 36 L29 40 H35 Z" fill="#171512"/>
+      <path d="M20 12 Q32 4 44 12" stroke="#f5c542" stroke-width="3" fill="none"/>
+    </symbol>
+    <!-- UI-иконки -->
+    <symbol id="ui-coin" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="22" fill="#f5c542"/>
+      <circle cx="32" cy="32" r="17" fill="none" stroke="#c99b2e" stroke-width="3"/>
+      <path d="M32 20 V44 M24 26 H40 M24 38 H40" stroke="#6e4722" stroke-width="4" stroke-linecap="round" fill="none"/>
+    </symbol>
+    <symbol id="ui-play" viewBox="0 0 64 64">
+      <path d="M24 16 L48 32 L24 48 Z" fill="currentColor"/>
+    </symbol>
+    <symbol id="ui-history" viewBox="0 0 64 64">
+      <circle cx="32" cy="34" r="18" fill="none" stroke="currentColor" stroke-width="5"/>
+      <path d="M32 24 V34 L40 40" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M10 14 L20 6 M54 6 L44 6 M20 6 V14" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="ui-info" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="20" fill="none" stroke="currentColor" stroke-width="5"/>
+      <circle cx="32" cy="22" r="3.5" fill="currentColor"/>
+      <path d="M32 30 V46" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="ui-minus" viewBox="0 0 64 64"><path d="M14 32 H50" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></symbol>
+    <symbol id="ui-plus" viewBox="0 0 64 64"><path d="M32 14 V50 M14 32 H50" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></symbol>
+    <symbol id="ui-auto" viewBox="0 0 64 64">
+      <path d="M32 6 A26 26 0 1 1 10 20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+      <path d="M10 6 V20 H24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M24 34 L32 42 L44 26" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ЭКРАН: ИГРА -->
+<div id="screen-game" class="screen active">
+  <header class="topbar">
+    <div class="brand">Gold Bandito</div>
+    <div class="topbar-right">
+      <div id="fs-badge" class="fs-badge hidden">Бонус ×1</div>
+      <div class="balance-chip">
+        <svg class="chip-coin"><use href="#ui-coin"/></svg>
+        <span id="balance">—</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="board-wrap">
+    <div id="grid" class="grid"></div>
+    <div id="win-banner" class="win-banner hidden">
+      <div id="win-amount" class="win-amount">+0</div>
+      <div id="win-mult" class="win-mult hidden">множитель ×1</div>
+      <div id="win-fs" class="win-fs hidden">12 фриспинов!</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="bet-box">
+      <button id="bet-minus" class="bet-btn" aria-label="Меньше"><svg><use href="#ui-minus"/></svg></button>
+      <div class="bet-value"><svg class="bet-coin"><use href="#ui-coin"/></svg><span id="bet">100</span></div>
+      <button id="bet-plus" class="bet-btn" aria-label="Больше"><svg><use href="#ui-plus"/></svg></button>
+    </div>
+    <button id="spin" class="spin-btn" aria-label="Крутить"><svg class="spin-icon"><use href="#ui-play"/></svg></button>
+    <button id="auto" class="auto-btn" aria-label="Авто"><svg class="auto-icon"><use href="#ui-auto"/></svg><span>АВТО</span></button>
+  </div>
+</div>
+
+<!-- ЭКРАН: ИСТОРИЯ -->
+<div id="screen-history" class="screen">
+  <header class="topbar"><div class="brand">История спинов</div></header>
+  <ul id="history-list" class="history-list"></ul>
+</div>
+
+<!-- ЭКРАН: ИНФО -->
+<div id="screen-info" class="screen">
+  <header class="topbar"><div class="brand">Как играть</div></header>
+  <div class="info-body">
+    <p><b>Сетка 5×4, 1,024 ways.</b> Выигрыш — 3 и более одинаковых символа
+    на барабанах подряд слева направо. Расположение в столбце не важно.</p>
+    <p>Выигрышные символы сгорают, сверху падают новые (<b>каскад</b>).
+    Каскады идут, пока выпадают выигрыши.</p>
+    <p>Символы в <b>золотой рамке</b> при сгорании превращаются в <b>вайлда</b> —
+    он заменяет любой платёжный символ.</p>
+    <p><b>3 и более гитар</b> на сетке → <b>12 фриспинов</b> (+2 за каждую сверх
+    трёх). Во фриспинах каждый каскад поднимает множитель на <b>+1</b>,
+    и он не сбрасывается до конца бонуса.</p>
+    <h3>Таблица выплат (×ставка)</h3>
+    <table id="paytable" class="paytable"></table>
+    <p class="muted">Отдача (RTP) ≈ 96.7%, как у оригинала Wild Bandito.</p>
+  </div>
+</div>
+
+<!-- ТАБ-БАР -->
+<nav class="tabbar">
+  <button class="tab active" data-tab="game"><svg><use href="#ui-play"/></svg><span>Игра</span></button>
+  <button class="tab" data-tab="history"><svg><use href="#ui-history"/></svg><span>История</span></button>
+  <button class="tab" data-tab="info"><svg><use href="#ui-info"/></svg><span>Инфо</span></button>
+</nav>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

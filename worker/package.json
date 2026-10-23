@@ -1,0 +1,13 @@
+{
+  "name": "gold-bandito-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "sim": "node sim.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^3.100.0"
+  }
+}
