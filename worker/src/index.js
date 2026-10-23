@@ -9,7 +9,7 @@ import { playSpin, BET_STEPS, START_BALANCE, PAYTABLE } from './game.js';
 
 const BONUS_AMOUNT = 500;          // ежедневный бонус, G
 const BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-import { ensureUser, placeBet, settleSpin, history, claimBonus, bonusState, adminGive, adminUsers, adminTx, stats } from './db.js';
+import { ensureUser, placeBet, settleSpin, history, claimBonus, bonusState, adminGive, adminUsers, adminTx, topup, stats } from './db.js';
 import { handleUpdate } from './bot.js';
 
 function isAdminUser(env, userId) {
@@ -155,6 +155,33 @@ export default {
         return json(env, { error: 'cooldown', wait: Math.ceil(r.wait / 1000) }, 409);
       }
       return json(env, { balance: r.balance, amount: r.amount });
+    }
+
+    // --- Пополнение: создать счёт Telegram Stars ---
+    const PACKS = {
+      1: { stars: 25, gold: 1000, label: 'Пакет 1 000 G' },
+      2: { stars: 99, gold: 4500, label: 'Пакет 4 500 G' },
+      3: { stars: 249, gold: 13000, label: 'Пакет 13 000 G' },
+    };
+    if (url.pathname === '/api/invoice' && request.method === 'POST') {
+      const initData = request.headers.get('x-init-data') || '';
+      const user = await validateInitData(initData, env.BOT_TOKEN);
+      if (!user) return json(env, { error: 'unauthorized' }, 401);
+      const body = await request.json().catch(() => ({}));
+      const pack = PACKS[Number(body.packId)];
+      if (!pack) return json(env, { error: 'bad_request' }, 400);
+      const r = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/createInvoiceLink`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Gold Bandito',
+          description: pack.label,
+          payload: `topup:${pack.gold}:${pack.stars}`,
+          currency: 'XTR',
+          prices: [{ label: pack.label, amount: pack.stars }],
+        }),
+      }).then(r => r.json());
+      if (!r.ok) return json(env, { error: 'invoice_failed' }, 500);
+      return json(env, { link: r.result });
     }
 
     // --- Админ: список юзеров ---

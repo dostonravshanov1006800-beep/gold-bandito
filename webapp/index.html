@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gold Bandito</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=8" />
+  <link rel="stylesheet" href="style.css?v=9" />
   <script src="config.js"></script>
 </head>
 <body>
@@ -259,6 +259,8 @@
     </symbol>
     <symbol id="ui-minus" viewBox="0 0 64 64"><path d="M14 32 H50" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></symbol>
     <symbol id="ui-plus" viewBox="0 0 64 64"><path d="M32 14 V50 M14 32 H50" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></symbol>
+    <symbol id="ui-gift" viewBox="0 0 64 64"><path d="M10 20h44v10H10zM13 34h38v20H13zM26 54h12V20H26zM32 10c-6 0-10 3-10 7s4 5 10 3 8-5 8-7-2-3-8-3zm0 0c6 0 10 3 10 7s-4 5-10 3-8-5-8-7 2-3 8-3z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M32 10v10" stroke="currentColor" stroke-width="4"/></symbol>
+    <symbol id="ui-star" viewBox="0 0 64 64"><path d="M32 6l7.8 15.8 17.4 2.5-12.6 12.3 3 17.3L32 45.9 16.4 53.9l3-17.3L6.8 24.3l17.4-2.5z" fill="currentColor"/></symbol>
     <symbol id="ui-close" viewBox="0 0 64 64"><path d="M16 16 L48 48 M48 16 L16 48" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></symbol>
     <symbol id="ui-search" viewBox="0 0 64 64"><circle cx="28" cy="28" r="15" fill="none" stroke="currentColor" stroke-width="6"/><path d="M39 39 L52 52" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></symbol>
     <symbol id="ui-auto" viewBox="0 0 64 64">
@@ -314,6 +316,8 @@
 
   <div class="board-outer">
     <div class="board-frame">
+      <div class="bulbs bulbs-t"></div><div class="bulbs bulbs-b"></div>
+      <div class="bulbs bulbs-l"></div><div class="bulbs bulbs-r"></div>
       <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
       <div class="frame-corner bl"></div><div class="frame-corner br"></div>
       <div class="board-wrap">
@@ -432,6 +436,36 @@
   </div>
 </div>
 
+<!-- ================= МАГАЗИН / ПОПОЛНЕНИЕ ================= -->
+<div id="shop-overlay" class="drawer-overlay hidden"></div>
+<div id="shop-sheet" class="shop-sheet hidden">
+  <div class="shop-head">
+    <span class="shop-title">Касса</span>
+    <button id="shop-close" class="drawer-close" aria-label="Закрыть"><svg><use href="#ui-close"/></svg></button>
+  </div>
+  <button id="shop-bonus" class="shop-bonus">
+    <svg class="shop-bonus-icon"><use href="#ui-gift"/></svg>
+    <span class="shop-bonus-txt">Ежедневный бонус<small>Бесплатно, раз в 24 часа</small></span>
+    <b id="shop-bonus-amt">+500 G</b>
+  </button>
+  <div class="shop-sub">Пополнить за Telegram Stars</div>
+  <div class="shop-packs">
+    <button class="shop-pack" data-pack="1">
+      <span class="sp-gold">1 000 G</span>
+      <span class="sp-stars"><svg><use href="#ui-star"/></svg>25</span>
+    </button>
+    <button class="shop-pack best" data-pack="2">
+      <i class="sp-badge">ВЫГОДНО</i>
+      <span class="sp-gold">4 500 G</span>
+      <span class="sp-stars"><svg><use href="#ui-star"/></svg>99</span>
+    </button>
+    <button class="shop-pack" data-pack="3">
+      <span class="sp-gold">13 000 G</span>
+      <span class="sp-stars"><svg><use href="#ui-star"/></svg>249</span>
+    </button>
+  </div>
+</div>
+
 <!-- ================= DRAWER-МЕНЮ ================= -->
 <div id="drawer-overlay" class="drawer-overlay hidden"></div>
 <aside id="drawer" class="drawer">
@@ -450,6 +484,6 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 // Telegram-бот @masons_agent (webhook-режим).
 // Команды: /start /balance /help, админам: /give /stats
 
-import { ensureUser, getBalance, adminGive, stats } from './db.js';
+import { ensureUser, getBalance, adminGive, topup, stats } from './db.js';
 
 const API = 'https://api.telegram.org/bot';
 
@@ -39,6 +39,27 @@ const HELP = [
 ].join('\n');
 
 export async function handleUpdate(env, update) {
+  // Пополнение Stars: pre-checkout и успешная оплата
+  if (update.pre_checkout_query) {
+    await tg(env, 'answerPreCheckoutQuery', {
+      pre_checkout_query_id: update.pre_checkout_query.id, ok: true,
+    });
+    return { ok: true };
+  }
+  const pay = update.message && update.message.successful_payment;
+  if (pay) {
+    const from = update.message.from || {};
+    const m = String(pay.invoice_payload || '').match(/^topup:(\d+):(\d+)$/);
+    if (m && Number(pay.total_amount) === Number(m[2])) {
+      const bal = await topup(env, from.id, Number(m[1]), Number(m[2]));
+      await tg(env, 'sendMessage', {
+        chat_id: update.message.chat.id,
+        text: `\u{1F389} Начислено ${m[1]} G (баланс: ${bal} G). Спасибо за пополнение!`,
+      });
+    }
+    return { ok: true };
+  }
+
   const msg = update.message || update.edited_message;
   if (!msg || !msg.text) return { ok: true };
 

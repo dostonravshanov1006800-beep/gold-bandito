@@ -71,6 +71,19 @@ export async function stats(env) {
   return { ...row, ...sums };
 }
 
+// Пополнение за Telegram Stars
+export async function topup(env, telegramId, amount, stars) {
+  await ensureUser(env, telegramId);
+  await env.DB.batch([
+    env.DB.prepare('UPDATE users SET balance = balance + ? WHERE telegram_id = ?')
+      .bind(amount, telegramId),
+    env.DB.prepare(
+      "INSERT INTO transactions (telegram_id, amount, kind, note) VALUES (?, ?, 'topup_stars', ?)"
+    ).bind(telegramId, amount, `${stars} stars`),
+  ]);
+  return getBalance(env, telegramId);
+}
+
 export async function adminTx(env) {
   const { results } = await env.DB.prepare(
     'SELECT t.telegram_id, t.amount, t.kind, t.note, t.created_at, u.username FROM transactions t LEFT JOIN users u ON u.telegram_id = t.telegram_id ORDER BY t.id DESC LIMIT 25'
