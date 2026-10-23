@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gold Bandito</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=7" />
   <script src="config.js"></script>
 </head>
 <body>
 
-<!-- ================= СИМВОЛЫ (мультяшный стиль Wild Bandito, градиенты) ================= -->
+<!-- ================= СИМВОЛЫ (мультяшный стиль, градиенты) ================= -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <linearGradient id="g-gold" x1="0" y1="0" x2="0" y2="1">
@@ -343,7 +343,17 @@
     <div class="ctl-panel win-panel">
       <span class="ctl-label">ВЫИГРЫШ</span>
       <div class="win-value"><svg class="win-coin"><use href="#ui-coin"/></svg><span id="last-win">0</span></div>
-      <button id="auto" class="auto-btn" aria-label="Авто"><svg class="auto-icon"><use href="#ui-auto"/></svg><span>АВТО</span></button>
+      <button id="auto" class="auto-btn" aria-label="Авто"><svg class="auto-icon"><use href="#ui-auto"/></svg><span id="auto-label">АВТО</span></button>
+    </div>
+    <div id="auto-pop" class="auto-pop hidden">
+      <span class="auto-pop-t">АВТО-ПРОКРУТЫ</span>
+      <div class="auto-pop-row">
+        <button class="ap-opt" data-n="10">10</button>
+        <button class="ap-opt" data-n="25">25</button>
+        <button class="ap-opt" data-n="50">50</button>
+        <button class="ap-opt" data-n="100">100</button>
+        <button class="ap-opt" data-n="inf">∞</button>
+      </div>
     </div>
   </div>
 </div>
@@ -358,18 +368,44 @@
 <div id="screen-info" class="screen">
   <header class="topbar"><div class="brand">Как играть</div></header>
   <div class="info-body">
-    <p><b>Сетка 5×4, 1 024 ways.</b> Выигрыш — 3 и более одинаковых символа
-    на барабанах подряд слева направо. Расположение в столбце не важно.</p>
-    <p>Выигрышные символы сгорают, сверху падают новые (<b>каскад</b>).
-    Каскады идут, пока выпадают выигрыши.</p>
-    <p>Символы в <b>золотой рамке</b> при сгорании превращаются в <b>вайлда</b> —
-    он заменяет любой платёжный символ.</p>
-    <p><b>3 и более гитар</b> на сетке → <b>12 фриспинов</b> (+2 за каждую сверх
-    трёх). Во фриспинах каждый каскад поднимает множитель на <b>+1</b>,
-    и он не сбрасывается до конца бонуса.</p>
-    <h3>Таблица выплат (×ставка)</h3>
+    <div class="rule-card">
+      <span class="rule-num">01</span>
+      <div class="rule-txt">
+        <h4>1 024 способа выиграть</h4>
+        <p>Сетка 5×4. Выигрыш — <b>3+ одинаковых символа</b> на барабанах подряд слева направо. Позиция в столбце не важна.</p>
+      </div>
+    </div>
+    <div class="rule-card">
+      <span class="rule-num">02</span>
+      <div class="rule-txt">
+        <h4>Каскады</h4>
+        <p>Выигрышные символы <b>сгорают</b>, сверху падают новые. Каскады идут, пока выпадают выигрыши — один спин может принести целую серию.</p>
+      </div>
+    </div>
+    <div class="rule-card">
+      <span class="rule-num">03</span>
+      <div class="rule-txt">
+        <h4>Золотые рамки</h4>
+        <p>Символ в <b>золотой рамке</b> при сгорании превращается в <b>Вайлда</b> — он заменяет любой платёжный символ.</p>
+      </div>
+    </div>
+    <div class="rule-card">
+      <span class="rule-num">04</span>
+      <div class="rule-txt">
+        <h4>Фриспины</h4>
+        <p><b>3+ гитар</b> на сетке → <b>12 фриспинов</b> (+2 за каждую сверх трёх). Каждый каскад во фриспинах поднимает множитель <b>+1</b> и не сбрасывает его до конца бонуса.</p>
+      </div>
+    </div>
+    <div class="rule-card">
+      <span class="rule-num">05</span>
+      <div class="rule-txt">
+        <h4>Ежедневный бонус</h4>
+        <p>Жми <b>«+» рядом с балансом</b> раз в 24 часа и получай <b>+500 голды</b>.</p>
+      </div>
+    </div>
+    <h3>Таблица выплат <small>×ставка</small></h3>
     <table id="paytable" class="paytable"></table>
-    <p class="muted">Механика — точная копия Wild Bandito (PG Soft). RTP ≈ 96.7%.</p>
+    <p class="muted">RTP ≈ 96.7% · Результат каждого спина рассчитывается на сервере.</p>
   </div>
 </div>
 
@@ -393,6 +429,6 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

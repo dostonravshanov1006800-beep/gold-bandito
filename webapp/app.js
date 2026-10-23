@@ -1,4 +1,4 @@
-/* Gold Bandito — логика мини-аппа (механика Wild Bandito) */
+/* Gold Bandito — логика мини-аппа (механика слота) */
 'use strict';
 
 const tg = window.Telegram && window.Telegram.WebApp;
@@ -126,12 +126,13 @@ async function claimBonus() {
     const data = await res.json();
     if (!res.ok) {
       const h = Math.floor((data.wait || 0) / 3600), m = Math.ceil(((data.wait || 0) % 3600) / 60);
+      $('bonus-btn').classList.add('claimed'); $('bonus-btn').classList.remove('ready');
       toast(h > 0 ? `Бонус будет доступен через ${h} ч` : `Бонус будет доступен через ${m} мин`);
       btn.classList.add('claimed');
       return;
     }
     updateBalance(data.balance);
-    btn.classList.add('claimed');
+    btn.classList.add('claimed'); btn.classList.remove('ready');
     toast('+' + fmt(data.amount) + ' G — ежедневный бонус');
     if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
   } catch (e) {
@@ -303,10 +304,17 @@ function flyCoins(n) {
   }
 }
 
+async function fetchJson(url, opts, tries = 2) {
+  for (let i = 0; i < tries; i++) {
+    try { return await fetch(url, opts); }
+    catch (e) { if (i === tries - 1) throw e; await sleep(900); }
+  }
+}
+
 async function apiGet(path) {
   if (DEMO) return demoState();
   const initData = tg && tg.initData ? tg.initData : '';
-  const res = await fetch(`${API}${path}?d=${encodeURIComponent(initData)}`);
+  const res = await fetchJson(`${API}${path}?d=${encodeURIComponent(initData)}`);
   if (res.status === 401) throw new Error('unauthorized');
   return res.json();
 }
@@ -314,7 +322,7 @@ async function apiGet(path) {
 async function apiSpin(bet) {
   if (DEMO) return demoSpin(bet);
   const initData = tg && tg.initData ? tg.initData : '';
-  const res = await fetch(`${API}/api/spin`, {
+  const res = await fetchJson(`${API}/api/spin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Init-Data': initData },
     body: JSON.stringify({ bet }),
@@ -454,7 +462,11 @@ function betValue() {
 async function doSpin() {
   if (state.spinning) return;
   const inBonus = !!(state.bonus && state.bonus.remaining > 0);
-  if (!inBonus && state.balance < betValue()) { toast('Недостаточно голды', true); return; }
+  if (!inBonus && state.balance < betValue()) {
+    toast('Недостаточно голды', true);
+    if (state.auto) stopAuto();
+    return;
+  }
 
   state.spinning = true;
   $('spin').disabled = true;
@@ -470,8 +482,8 @@ async function doSpin() {
   } catch (e) {
     if (e.code === 'insufficient_funds') toast('Недостаточно голды', true);
     else if (e.message === 'unauthorized') toast('Открой приложение из Telegram', true);
-    else toast('Ошибка соединения, попробуй ещё раз', true);
-    state.auto = false; $('auto').classList.remove('on');
+    else toast("Ошибка соединения, попробуй ещё раз", true);
+    stopAuto();
     refreshState();
   } finally {
     $('spin').classList.remove('spinning');
@@ -479,16 +491,17 @@ async function doSpin() {
     $('spin').disabled = false;
   }
 
-  // авто-режим: продолжаем, пока есть баланс (или фриспины)
+  // авто-режим: продолжаем, пока есть счётчик и баланс (или фриспины)
+  if (state.auto && autoLeft !== Infinity && autoLeft > 0) autoLeft--;
+  updateAutoUI();
   const stillInBonus = !!(state.bonus && state.bonus.remaining > 0);
-  if (state.auto && (stillInBonus || state.balance >= betValue())) {
+  if (state.auto && autoLeft > 0 && (stillInBonus || state.balance >= betValue())) {
     await sleep(500);
     if (state.auto) doSpin();
   } else if (stillInBonus && !state.auto) {
     toast(`Фриспины: ${state.bonus.remaining} — жми «Фриспин»`);
   } else {
-    state.auto = false;
-    $('auto').classList.remove('on');
+    stopAuto();
   }
 }
 
@@ -505,7 +518,9 @@ async function refreshState() {
     renderPaytable();
     updateBonusUI();
     $('tab-admin').classList.toggle('hidden', !s.isAdmin);
-    $('bonus-btn').classList.toggle('claimed', (s.nextBonusIn || 0) > 0);
+    const bonusReady = (s.nextBonusIn || 0) <= 0;
+    $('bonus-btn').classList.toggle('claimed', !bonusReady);
+    $('bonus-btn').classList.toggle('ready', bonusReady);
   } catch (e) {
     renderGrid(randomGrid(), true);
     toast('Нет связи с сервером', true);
@@ -561,11 +576,41 @@ $('bet-plus').addEventListener('click', () => {
   $('bet').textContent = fmt(state.betSteps[state.betIndex]);
 });
 
+let autoLeft = 0;
+function updateAutoUI() {
+  const lbl = $('auto-label');
+  if (state.auto) {
+    lbl.textContent = autoLeft === Infinity ? 'СТОП ∞' : 'СТОП ' + autoLeft;
+  } else {
+    lbl.textContent = 'АВТО';
+  }
+}
+function stopAuto() {
+  autoLeft = 0;
+  state.auto = false;
+  $('auto').classList.remove('on');
+  $('auto-pop').classList.add('hidden');
+  updateAutoUI();
+}
 $('auto').addEventListener('click', () => {
-  state.auto = !state.auto;
-  $('auto').classList.toggle('on', state.auto);
-  if (state.auto) doSpin();
+  if (state.auto) { stopAuto(); return; }            // во время серии — стоп
+  $('auto-pop').classList.toggle('hidden');
 });
+document.addEventListener('click', (e) => {
+  const pop = $('auto-pop');
+  if (pop.classList.contains('hidden')) return;
+  if (!pop.contains(e.target) && e.target !== $('auto') && !$('auto').contains(e.target)) {
+    pop.classList.add('hidden');
+  }
+});
+$('auto-pop').querySelectorAll('.ap-opt').forEach(b => b.addEventListener('click', () => {
+  autoLeft = b.dataset.n === 'inf' ? Infinity : Number(b.dataset.n);
+  state.auto = true;
+  $('auto-pop').classList.add('hidden');
+  $('auto').classList.add('on');
+  updateAutoUI();
+  doSpin();
+}));
 
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {

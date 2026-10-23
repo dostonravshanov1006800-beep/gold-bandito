@@ -1,4 +1,4 @@
-/* Gold Bandito — сцена «мексиканская ночь» в стиле Wild Bandito */
+/* Gold Bandito — сцена «мексиканская ночь» в стиле мексиканской ночи */
 :root {
   --night-1: #1a0f33;
   --night-2: #3c1f63;
@@ -201,7 +201,8 @@ body.fs-mode .sky {
 
 .balance-wrap { display: flex; align-items: center; gap: 6px; }
 .bonus-btn {
-  width: 34px; height: 34px; border-radius: 50%;
+  width: 40px; height: 40px; border-radius: 50%;
+  position: relative;
   display: flex; align-items: center; justify-content: center;
   color: #5d3a1c;
   background: radial-gradient(circle at 32% 28%, #fff3c9, #f6c445 48%, #d99a23 82%, #a86f14);
@@ -210,6 +211,15 @@ body.fs-mode .sky {
 .bonus-btn:active { transform: scale(.9); }
 .bonus-btn svg { width: 16px; height: 16px; }
 .bonus-btn.claimed { filter: saturate(.4) brightness(.8); }
+.bonus-btn.ready::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  border: 2px solid rgba(246, 196, 69, .55);
+  animation: bonusPulse 1.6s ease-out infinite;
+}
+@keyframes bonusPulse {
+  0% { transform: scale(.8); opacity: 1; }
+  70%, 100% { transform: scale(1.25); opacity: 0; }
+}
 
 /* ---------- РАМКА БАРАБАНОВ ---------- */
 .board-outer {
@@ -409,11 +419,39 @@ body.fs-mode .sky {
   font-weight: 800; font-size: 16px; color: var(--win);
 }
 .win-coin { width: 16px; height: 16px; }
+.auto-pop {
+  position: absolute; right: 14px; bottom: 108px; z-index: 30;
+  background: linear-gradient(180deg, #3a1e4f, #1d0e36);
+  border: 1.5px solid rgba(246, 196, 69, .5);
+  border-radius: 14px; padding: 10px 12px 12px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.6);
+  animation: popUp .18s ease-out;
+}
+@keyframes popUp { from { transform: translateY(8px) scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
+.auto-pop-t {
+  display: block; font-size: 9px; font-weight: 900; letter-spacing: 1.8px;
+  color: var(--muted); margin-bottom: 8px; text-align: center;
+}
+.auto-pop-row { display: flex; gap: 6px; }
+.ap-opt {
+  min-width: 44px; padding: 9px 0; border-radius: 10px;
+  font-size: 14px; font-weight: 800; color: var(--gold-1);
+  background: rgba(246, 196, 69, .12);
+  border: 1px solid rgba(246, 196, 69, .45);
+}
+.ap-opt:active { background: rgba(246, 196, 69, .35); transform: scale(.93); }
+.auto-pop::after {
+  content: ""; position: absolute; right: 26px; bottom: -6px; width: 10px; height: 10px;
+  background: #1d0e36; border-right: 1.5px solid rgba(246,196,69,.5);
+  border-bottom: 1.5px solid rgba(246,196,69,.5); transform: rotate(45deg);
+}
+
 .auto-btn {
   display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;
-  font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--muted);
-  padding: 3px 8px; border-radius: 8px;
-  border: 1px solid rgba(178, 128, 255, .3);
+  font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--gold-2);
+  padding: 5px 10px; border-radius: 9px;
+  border: 1px solid rgba(246, 196, 69, .45);
+  background: rgba(246, 196, 69, .1);
 }
 .auto-btn svg { width: 13px; height: 13px; }
 .auto-btn.on {
@@ -478,11 +516,31 @@ body.fs-mode .sky {
 /* ---------- ИНФО ---------- */
 .info-body {
   overflow-y: auto; flex: 1;
-  padding: 14px 18px 90px;
-  font-size: 14.5px; line-height: 1.55;
+  padding: 14px 14px 90px;
+  font-size: 13.5px;
+  line-height: 1.55;
 }
-.info-body h3 { color: var(--gold-1); margin: 18px 0 8px; }
+.info-body h3 { color: var(--gold-1); margin: 20px 0 10px; font-size: 17px; letter-spacing: 1px; }
+.info-body h3 small { color: var(--muted); font-size: 12px; font-weight: 700; }
 .info-body b { color: var(--gold-2); }
+.rule-card {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: linear-gradient(180deg, rgba(58,30,79,.95), rgba(28,14,50,.95));
+  border: 1.5px solid rgba(246, 196, 69, .35);
+  border-radius: 16px;
+  padding: 14px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 3px 14px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.rule-num {
+  font-size: 22px; font-weight: 900; line-height: 1;
+  background: linear-gradient(180deg, #ffe9a3, #f6c445 55%, #d99a23);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  min-width: 34px; text-align: center;
+  text-shadow: 0 2px 6px rgba(246,196,69,.25);
+}
+.rule-txt h4 { margin: 0 0 4px; color: var(--gold-1); font-size: 15.5px; letter-spacing: .4px; }
+.rule-txt p { margin: 0; font-size: 13.5px; color: #efe8ff; }
 .muted { color: var(--muted); font-size: 12.5px; }
 .paytable {
   width: 100%; border-collapse: collapse; font-size: 13px;
