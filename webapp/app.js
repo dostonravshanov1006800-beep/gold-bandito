@@ -73,10 +73,10 @@ async function renderAdmin() {
     $('admin-stats').innerHTML = `
       <div class="stat-card"><span>ЮЗЕРОВ</span><b>${s.users ?? 0}</b></div>
       <div class="stat-card"><span>СПИНОВ</span><b>${s.spins ?? 0}</b></div>
-      <div class="stat-card"><span>ОБОРОТ</span><b>${fmt(s.staked || 0)} G</b></div>
-      <div class="stat-card"><span>ВЫПЛАЧЕНО</span><b>${fmt(s.won || 0)} G</b></div>
+      <div class="stat-card"><span>ОБОРОТ</span><b class="long">${fmt(s.staked || 0)} G</b></div>
+      <div class="stat-card"><span>ВЫПЛАЧЕНО</span><b class="long">${fmt(s.won || 0)} G</b></div>
       <div class="stat-card"><span>RTP ФАКТ</span><b>${rtp}%</b></div>
-      <div class="stat-card"><span>ПРИБЫЛЬ</span><b>${fmt(pnl)} G</b></div>`;
+      <div class="stat-card"><span>ПРИБЫЛЬ</span><b class="long">${fmt(pnl)} G</b></div>`;
 
     renderAdminUsers($('admin-search').value.trim().toLowerCase());
     renderAdminTx();
@@ -95,15 +95,19 @@ function renderAdminUsers(q) {
   );
   $('admin-count').textContent = '(' + users.length + ')';
   $('admin-users').innerHTML = users.map(u => `
-    <li>
-      <div class="au-name">${u.username ? '@' + esc(u.username) : 'id ' + u.telegram_id}
-        <small>id ${u.telegram_id} · спинов: ${u.spins ?? 0}${u.fs_remaining > 0 ? ' · ФС: ' + u.fs_remaining : ''}</small>
+    <li class="au-card">
+      <div class="au-top">
+        <div class="au-name">${u.username ? '@' + esc(u.username) : 'id ' + u.telegram_id}
+          <small>id ${u.telegram_id} · спинов: ${u.spins ?? 0}${u.fs_remaining > 0 ? ' · ФС: ' + u.fs_remaining : ''}</small>
+        </div>
+        <div class="au-bal" id="au-bal-${u.telegram_id}">${fmt(u.balance)} G</div>
       </div>
-      <div class="au-bal" id="au-bal-${u.telegram_id}">${fmt(u.balance)} G</div>
-      <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-1000">1k</button>
-      <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-100"><svg><use href="#ui-minus"/></svg></button>
-      <button class="au-btn" data-tid="${u.telegram_id}" data-amt="100"><svg><use href="#ui-plus"/></svg></button>
-      <button class="au-btn" data-tid="${u.telegram_id}" data-amt="1000">1k</button>
+      <div class="au-actions">
+        <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-1000">−1k</button>
+        <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-100">−100</button>
+        <button class="au-btn" data-tid="${u.telegram_id}" data-amt="100">+100</button>
+        <button class="au-btn" data-tid="${u.telegram_id}" data-amt="1000">+1k</button>
+      </div>
     </li>`).join('') || '<li class="history-empty">Никого не найдено</li>';
   $('admin-users').querySelectorAll('.au-btn').forEach(b => b.addEventListener('click', async () => {
     const amt = Number(b.dataset.amt);
@@ -321,8 +325,8 @@ async function showBanner(amount, mult, isFinal, big) {
   const multEl = $('win-mult');
   const fsEl = $('win-fs');
   fsEl.classList.add('hidden');
-  amountEl.textContent = '+' + fmt(amount);
   amountEl.classList.toggle('big', !!big);
+  countUp(amountEl, amount, big ? 900 : 380);
   amountEl.classList.remove('hidden');
   if (mult > 1) { multEl.textContent = 'множитель ×' + mult; multEl.classList.remove('hidden'); }
   else multEl.classList.add('hidden');
@@ -332,6 +336,17 @@ async function showBanner(amount, mult, isFinal, big) {
   amountEl.style.animation = '';
   await sleep(isFinal ? 1700 : 700);
   if (!isFinal) banner.classList.remove('show');
+}
+
+function countUp(el, target, ms) {
+  const t0 = performance.now();
+  const tick = (now) => {
+    const p = Math.min(1, (now - t0) / ms);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = '+' + fmt(Math.round(target * eased));
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 async function animateSpin(result) {
@@ -618,11 +633,15 @@ function renderHistory(rows) {
     return;
   }
   list.innerHTML = rows.map(r => {
-    const cls = r.win > 0 ? 'pos' : 'zero';
-    return `<li>
-      <span class="h-bet">ставка ${fmt(r.bet)} G</span>
-      <span class="h-win ${cls}">${r.win > 0 ? '+' + fmt(r.win) : '—'} G</span>
-      <span class="h-date">${(r.created_at || '').slice(5, 16)}</span>
+    const won = r.win > 0;
+    const dt = (r.created_at || '').slice(5, 16);
+    return `<li class="hist-row">
+      <span class="hist-ico ${won ? 'win' : ''}"><svg><use href="#ui-coin"/></svg></span>
+      <div class="hist-mid">
+        <span class="hist-bet">Ставка ${fmt(r.bet)} G</span>
+        <span class="hist-time">${dt}</span>
+      </div>
+      <b class="hist-win ${won ? 'pos' : 'zero'}">${won ? '+' + fmt(r.win) + ' G' : '—'}</b>
     </li>`;
   }).join('');
 }
