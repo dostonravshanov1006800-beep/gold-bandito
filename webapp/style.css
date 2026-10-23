@@ -1318,3 +1318,12 @@ body.bw-shake .board-frame { animation: quake .35s ease 3; }
     rgba(255, 213, 100, .13) 330deg 342deg, transparent 342deg 360deg);
   animation: bwSpin 16s linear infinite;
 }
+
+/* ================= v30: поле во весь экран, интерфейс плотнее ================= */
+.board-outer { padding: 0; }
+.board-frame { width: min(100%, 78vh); max-width: 520px; }
+.grid { gap: 5px; }
+.topbar { padding: 8px 10px 6px; grid-template-columns: 36px 1fr auto; }
+.menu-btn { width: 36px; height: 36px; }
+.mute-btn { width: 36px; height: 36px; }
+.bonus-btn { width: 36px; height: 36px; }

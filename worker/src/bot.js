@@ -2,7 +2,10 @@
 // Команды: /start /balance /history /play /help
 // Админам (ADMIN_IDS): /give /take /stats /users /user
 
-import { ensureUser, getBalance, getUser, adminGive, adminUsers, topup, stats, history } from './db.js';
+import { ensureUser, getBalance, getUser, adminGive, adminUsers, topup, stats, history, claimBonus } from './db.js';
+
+const BONUS_AMOUNT = 500;               // как в мини-аппе
+const BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 const API = 'https://api.telegram.org/bot';
 
@@ -19,18 +22,21 @@ async function tg(env, method, payload) {
   return res;
 }
 
-const APP_V = 28;
+const APP_V = 30;
 
 function appUrl(env) {
   const base = String(env.WEBAPP_URL || '');
   return base + (base.includes('?') ? '&' : '?') + 'v=' + APP_V;
 }
 
-function mainKeyboard(webappUrl) {
-  return {
-    resize_keyboard: true,
-    keyboard: [[{ text: 'Играть', web_app: { url: webappUrl } }]],
-  };
+function mainKeyboard(webappUrl, isAdmin) {
+  const keyboard = [
+    [{ text: 'ИГРАТЬ', web_app: { url: webappUrl } }],
+    [{ text: 'Баланс' }, { text: 'Бонус' }, { text: 'История' }],
+  ];
+  if (isAdmin) keyboard.push([{ text: 'Статистика' }, { text: 'Игроки' }]);
+  keyboard.push([{ text: 'Помощь' }]);
+  return { is_persistent: true, resize_keyboard: true, keyboard };
 }
 
 function inlinePlay(webappUrl) {
@@ -124,7 +130,10 @@ export async function handleUpdate(env, update) {
   if (!msg || !msg.text) return { ok: true };
   const chatId = msg.chat.id;
   const from = msg.from || {};
-  const { cmd, a1, a2 } = parseArgs(msg.text.trim());
+  let { cmd, a1, a2 } = parseArgs(msg.text.trim());
+  const LABELS = { 'баланс': '/balance', 'бонус': '/bonus', 'история': '/history', 'помощь': '/help', 'статистика': '/stats', 'игроки': '/users', 'играть': '/play' };
+  const mapped = LABELS[(msg.text.trim() || '').toLowerCase()];
+  if (mapped) cmd = mapped;
   const adminIds = String(env.ADMIN_IDS || '').split(',').map(s => Number(s.trim())).filter(Boolean);
   const isAdmin = adminIds.includes(from.id);
   const send = (text, markup) => tg(env, 'sendMessage', { chat_id: chatId, text, reply_markup: markup });
@@ -135,11 +144,13 @@ export async function handleUpdate(env, update) {
       await send([
         'Салют! Это Gold Bandito — салунный слот в духе мексиканской ночи.',
         '',
-        'Стартовый баланс: 1 000 G. Крути барабан кнопкой ниже.',
-        'Сетка 5×4, 1,024 ways, каскады, вайлды из золотых рамок и фриспины с растущим множителем.',
+        'Стартовый баланс: 1 000 G.',
         '',
-        'Команды: /play /balance /history /help' + (isAdmin ? HELP_ADMIN : ''),
-      ].join('\n'), mainKeyboard(appUrl(env)));
+        'Всё на кнопках под сообщением, вводить ничего не надо:',
+        'ИГРАТЬ — барабан · Баланс · Бонус · История · Помощь.',
+        '',
+        'Сетка 5×4, 1,024 ways, каскады, вайлды из золотых рамок и фриспины с растущим множителем.',
+      ].join('\n'), mainKeyboard(appUrl(env), isAdmin));
       return { ok: true };
     }
     case '/play': {
@@ -164,6 +175,17 @@ export async function handleUpdate(env, update) {
         return `${fmtTz(r.created_at)} · ставка ${fmtG(r.bet)} G → ${res}${mv}`;
       });
       await send('Последние спины (время по Ташкенту):\n' + lines.join('\n'));
+      return { ok: true };
+    }
+    case '/bonus': {
+      const res = await claimBonus(env, from.id, BONUS_AMOUNT, BONUS_COOLDOWN_MS);
+      if (res && res.ok === false) {
+        const h = Math.floor(res.wait / 3600000), m = Math.ceil((res.wait % 3600000) / 60000);
+        await send(`Бонус уже забран. Следующий через ${h} ч ${m} мин — приходи завтра.`);
+      } else {
+        const bal = await getBalance(env, from.id);
+        await send(`Ежедневный бонус забран: +${fmtG(BONUS_AMOUNT)} G.\nБаланс: ${fmtG1(bal)} G. Возвращайся через сутки!`);
+      }
       return { ok: true };
     }
     case '/help': {
@@ -232,7 +254,13 @@ export async function handleUpdate(env, update) {
     }
     default: {
       if (cmd.startsWith('/')) {
-        await send('Неизвестная команда. /help — список команд.');
+        await send('Неизвестная команда. Жми «Помощь» на клавиатуре ниже.');
+      } else {
+        await tg(env, 'sendMessage', {
+          chat_id: chatId,
+          text: 'Жми кнопки на клавиатуре — «ИГРАТЬ» открывает барабан.',
+          reply_markup: mainKeyboard(appUrl(env), isAdmin),
+        });
       }
       return { ok: true };
     }
