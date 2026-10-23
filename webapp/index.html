@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gold Bandito</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=7" />
+  <link rel="stylesheet" href="style.css?v=8" />
   <script src="config.js"></script>
 </head>
 <body>
@@ -259,6 +259,8 @@
     </symbol>
     <symbol id="ui-minus" viewBox="0 0 64 64"><path d="M14 32 H50" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></symbol>
     <symbol id="ui-plus" viewBox="0 0 64 64"><path d="M32 14 V50 M14 32 H50" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></symbol>
+    <symbol id="ui-close" viewBox="0 0 64 64"><path d="M16 16 L48 48 M48 16 L16 48" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></symbol>
+    <symbol id="ui-search" viewBox="0 0 64 64"><circle cx="28" cy="28" r="15" fill="none" stroke="currentColor" stroke-width="6"/><path d="M39 39 L52 52" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></symbol>
     <symbol id="ui-auto" viewBox="0 0 64 64">
       <path d="M32 6 A26 26 0 1 1 9 22" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
       <path d="M9 6 V22 H25" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -289,6 +291,9 @@
   </div>
 
   <header class="topbar">
+    <button id="menu-btn" class="menu-btn" aria-label="Меню">
+      <span class="burger-line"></span><span class="burger-line"></span><span class="burger-line"></span>
+    </button>
     <div class="logo">
       <span class="logo-gold">GOLD</span><span class="logo-bandito">BANDITO</span>
     </div>
@@ -360,13 +365,13 @@
 
 <!-- ================= ЭКРАН: ИСТОРИЯ ================= -->
 <div id="screen-history" class="screen">
-  <header class="topbar"><div class="brand">История</div></header>
+  <header class="topbar"><button class="menu-btn" aria-label="Меню"><span class="burger-line"></span><span class="burger-line"></span><span class="burger-line"></span></button><div class="brand">История</div></header>
   <ul id="history-list" class="history-list"></ul>
 </div>
 
 <!-- ================= ЭКРАН: ИНФО ================= -->
 <div id="screen-info" class="screen">
-  <header class="topbar"><div class="brand">Как играть</div></header>
+  <header class="topbar"><button class="menu-btn" aria-label="Меню"><span class="burger-line"></span><span class="burger-line"></span><span class="burger-line"></span></button><div class="brand">Как играть</div></header>
   <div class="info-body">
     <div class="rule-card">
       <span class="rule-num">01</span>
@@ -411,24 +416,40 @@
 
 <!-- ================= ЭКРАН: АДМИН ================= -->
 <div id="screen-admin" class="screen">
-  <header class="topbar"><div class="brand">Админ-панель</div></header>
+  <header class="topbar"><button class="menu-btn" aria-label="Меню"><span class="burger-line"></span><span class="burger-line"></span><span class="burger-line"></span></button><div class="brand">CRM · Админ</div></header>
   <div class="admin-body">
     <div id="admin-stats" class="admin-stats"></div>
-    <h3 class="admin-h">Игроки</h3>
+
+    <div class="crm-search">
+      <svg><use href="#ui-search"/></svg>
+      <input id="admin-search" type="text" placeholder="Поиск по нику или id…" autocomplete="off">
+    </div>
+    <h3 class="admin-h">Игроки <span id="admin-count" class="admin-count"></span></h3>
     <ul id="admin-users" class="admin-users"></ul>
+
+    <h3 class="admin-h">Последние операции</h3>
+    <ul id="admin-tx" class="admin-tx"></ul>
   </div>
 </div>
 
-<!-- ================= ТАБ-БАР ================= -->
-<nav class="tabbar">
-  <button class="tab active" data-tab="game"><svg><use href="#ui-play"/></svg><span>Игра</span></button>
-  <button class="tab" data-tab="history"><svg><use href="#ui-history"/></svg><span>История</span></button>
-  <button class="tab" data-tab="info"><svg><use href="#ui-info"/></svg><span>Инфо</span></button>
-  <button id="tab-admin" class="tab hidden" data-tab="admin"><svg><use href="#ui-spur"/></svg><span>Админ</span></button>
-</nav>
+<!-- ================= DRAWER-МЕНЮ ================= -->
+<div id="drawer-overlay" class="drawer-overlay hidden"></div>
+<aside id="drawer" class="drawer">
+  <div class="drawer-head">
+    <div class="drawer-logo"><span class="logo-gold">GOLD</span><span class="logo-bandito">BANDITO</span></div>
+    <button id="drawer-close" class="drawer-close" aria-label="Закрыть"><svg><use href="#ui-close"/></svg></button>
+  </div>
+  <nav class="drawer-nav">
+    <button class="menu-item active" data-tab="game"><svg><use href="#ui-play"/></svg><span>Игра</span></button>
+    <button class="menu-item" data-tab="history"><svg><use href="#ui-history"/></svg><span>История</span></button>
+    <button class="menu-item" data-tab="info"><svg><use href="#ui-info"/></svg><span>Инфо</span></button>
+    <button id="menu-item-admin" class="menu-item hidden" data-tab="admin"><svg><use href="#ui-spur"/></svg><span>Админ · CRM</span></button>
+  </nav>
+  <div class="drawer-foot">RTP 96.7% · Спины считает сервер</div>
+</aside>
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

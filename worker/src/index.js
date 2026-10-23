@@ -9,7 +9,7 @@ import { playSpin, BET_STEPS, START_BALANCE, PAYTABLE } from './game.js';
 
 const BONUS_AMOUNT = 500;          // ежедневный бонус, G
 const BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-import { ensureUser, placeBet, settleSpin, history, claimBonus, bonusState, adminGive, adminUsers, stats } from './db.js';
+import { ensureUser, placeBet, settleSpin, history, claimBonus, bonusState, adminGive, adminUsers, adminTx, stats } from './db.js';
 import { handleUpdate } from './bot.js';
 
 function isAdminUser(env, userId) {
@@ -181,6 +181,14 @@ export default {
     }
 
     // --- Админ: статистика ---
+    if (url.pathname === '/api/admin/tx' && request.method === 'GET') {
+      const initData = url.searchParams.get('d') || '';
+      const user = await validateInitData(initData, env.BOT_TOKEN);
+      if (!user) return json(env, { error: 'unauthorized' }, 401);
+      if (!isAdminUser(env, user.id)) return json(env, { error: 'forbidden' }, 403);
+      return json(env, { tx: await adminTx(env) });
+    }
+
     if (url.pathname === '/api/admin/stats' && request.method === 'GET') {
       const initData = url.searchParams.get('d') || '';
       const user = await validateInitData(initData, env.BOT_TOKEN);

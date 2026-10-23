@@ -154,39 +154,67 @@ async function renderAdmin() {
   try {
     const data = await adminApi('/api/admin/users');
     const s = await adminApi('/api/admin/stats');
-    const st = $('admin-stats');
-    st.innerHTML = `
+    const tx = await adminApi('/api/admin/tx');
+    adminCache = { users: data.users || [], tx: tx.tx || [] };
+
+    const rtp = s.staked > 0 ? (s.won / s.staked * 100).toFixed(1) : '—';
+    const pnl = (s.staked || 0) - (s.won || 0);
+    $('admin-stats').innerHTML = `
       <div class="stat-card"><span>ЮЗЕРОВ</span><b>${s.users ?? 0}</b></div>
       <div class="stat-card"><span>СПИНОВ</span><b>${s.spins ?? 0}</b></div>
-      <div class="stat-card"><span>ПОСТАВЛЕНО</span><b>${fmt(s.staked || 0)} G</b></div>
-      <div class="stat-card"><span>ВЫПЛАЧЕНО</span><b>${fmt(s.won || 0)} G</b></div>`;
-    const list = $('admin-users');
-    list.innerHTML = (data.users || []).map(u => `
-      <li>
-        <div class="au-name">${u.username ? '@' + u.username : 'id ' + u.telegram_id}
-          <small>id ${u.telegram_id}${u.fs_remaining > 0 ? ' · ФС: ' + u.fs_remaining : ''}</small>
-        </div>
-        <div class="au-bal">${fmt(u.balance)} G</div>
-        <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-100"><svg><use href="#ui-minus"/></svg></button>
-        <button class="au-btn" data-tid="${u.telegram_id}" data-amt="100"><svg><use href="#ui-plus"/></svg></button>
-      </li>`).join('');
-    list.querySelectorAll('.au-btn').forEach(b => b.addEventListener('click', async () => {
-      const amt = Number(b.dataset.amt);
-      b.disabled = true;
-      try {
-        const r = await adminApi('/api/admin/give', {
-          method: 'POST', body: JSON.stringify({ telegramId: Number(b.dataset.tid), amount: amt }),
-        });
-        if (r.balance !== undefined) {
-          b.closest('li').querySelector('.au-bal').textContent = fmt(r.balance) + ' G';
-          toast((amt > 0 ? '+' : '') + amt + ' G → id ' + b.dataset.tid);
-        } else toast(r.error || 'Ошибка', true);
-      } catch (e) { toast('Ошибка соединения', true); }
-      b.disabled = false;
-    }));
+      <div class="stat-card"><span>ОБОРОТ</span><b>${fmt(s.staked || 0)} G</b></div>
+      <div class="stat-card"><span>ВЫПЛАЧЕНО</span><b>${fmt(s.won || 0)} G</b></div>
+      <div class="stat-card"><span>RTP ФАКТ</span><b>${rtp}%</b></div>
+      <div class="stat-card"><span>ПРИБЫЛЬ</span><b>${fmt(pnl)} G</b></div>`;
+
+    renderAdminUsers($('admin-search').value.trim().toLowerCase());
+    renderAdminTx();
   } catch (e) {
     $('admin-users').innerHTML = '<li class="history-empty">Нет доступа</li>';
   }
+}
+
+function renderAdminUsers(q) {
+  const users = adminCache.users.filter(u =>
+    !q || String(u.username || '').toLowerCase().includes(q) || String(u.telegram_id).includes(q)
+  );
+  $('admin-count').textContent = '(' + users.length + ')';
+  $('admin-users').innerHTML = users.map(u => `
+    <li>
+      <div class="au-name">${u.username ? '@' + u.username : 'id ' + u.telegram_id}
+        <small>id ${u.telegram_id} · спинов: ${u.spins ?? 0}${u.fs_remaining > 0 ? ' · ФС: ' + u.fs_remaining : ''}</small>
+      </div>
+      <div class="au-bal" id="au-bal-${u.telegram_id}">${fmt(u.balance)} G</div>
+      <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-1000">1k</button>
+      <button class="au-btn minus" data-tid="${u.telegram_id}" data-amt="-100"><svg><use href="#ui-minus"/></svg></button>
+      <button class="au-btn" data-tid="${u.telegram_id}" data-amt="100"><svg><use href="#ui-plus"/></svg></button>
+      <button class="au-btn" data-tid="${u.telegram_id}" data-amt="1000">1k</button>
+    </li>`).join('') || '<li class="history-empty">Никого не найдено</li>';
+  $('admin-users').querySelectorAll('.au-btn').forEach(b => b.addEventListener('click', async () => {
+    const amt = Number(b.dataset.amt);
+    b.disabled = true;
+    try {
+      const r = await adminApi('/api/admin/give', {
+        method: 'POST', body: JSON.stringify({ telegramId: Number(b.dataset.tid), amount: amt }),
+      });
+      if (r.balance !== undefined) {
+        const el = $('au-bal-' + b.dataset.tid);
+        if (el) el.textContent = fmt(r.balance) + ' G';
+        toast((amt > 0 ? '+' : '') + fmt(amt) + ' G → id ' + b.dataset.tid);
+      } else toast(r.error || 'Ошибка', true);
+    } catch (e) { toast('Ошибка соединения', true); }
+    b.disabled = false;
+  }));
+}
+
+function renderAdminTx() {
+  const KIND_RU = { topup_admin: 'Админ', bonus_daily: 'Бонус', spin: 'Спин' };
+  $('admin-tx').innerHTML = adminCache.tx.map(t => `
+    <li>
+      <span class="tx-who">${t.username ? '@' + t.username : 'id ' + t.telegram_id}
+        <span class="tx-kind"> · ${KIND_RU[t.kind] || t.kind}</span></span>
+      <span class="tx-amt ${t.amount >= 0 ? 'plus' : 'minus'}">${t.amount >= 0 ? '+' : ''}${fmt(t.amount)} G</span>
+    </li>`).join('') || '<li class="history-empty">Операций пока нет</li>';
 }
 
 const WILD = 'WILD';
@@ -517,7 +545,7 @@ async function refreshState() {
     renderHistory(s.history || []);
     renderPaytable();
     updateBonusUI();
-    $('tab-admin').classList.toggle('hidden', !s.isAdmin);
+    $('menu-item-admin').classList.toggle('hidden', !s.isAdmin);
     const bonusReady = (s.nextBonusIn || 0) <= 0;
     $('bonus-btn').classList.toggle('claimed', !bonusReady);
     $('bonus-btn').classList.toggle('ready', bonusReady);
@@ -612,14 +640,31 @@ $('auto-pop').querySelectorAll('.ap-opt').forEach(b => b.addEventListener('click
   doSpin();
 }));
 
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    $('screen-' + tab.dataset.tab).classList.add('active');
-    if (tab.dataset.tab === 'history') refreshState();
-    if (tab.dataset.tab === 'admin') renderAdmin();
+// ---------- DRAWER-МЕНЮ ----------
+const drawer = $('drawer'), drawerOverlay = $('drawer-overlay');
+function openDrawer() {
+  drawer.classList.add('open');
+  drawerOverlay.classList.remove('hidden');
+}
+function closeDrawer() {
+  drawer.classList.remove('open');
+  drawerOverlay.classList.add('hidden');
+}
+document.querySelectorAll('.menu-btn').forEach(b => b.addEventListener('click', openDrawer));
+$('drawer-close').addEventListener('click', closeDrawer);
+drawerOverlay.addEventListener('click', closeDrawer);
+
+function switchTab(name) {
+  document.querySelectorAll('.menu-item').forEach(m => m.classList.toggle('active', m.dataset.tab === name));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-' + name).classList.add('active');
+  if (name === 'history') refreshState();
+  if (name === 'admin') renderAdmin();
+}
+document.querySelectorAll('.menu-item').forEach(item => {
+  item.addEventListener('click', () => {
+    switchTab(item.dataset.tab);
+    closeDrawer();
   });
 });
 
@@ -635,3 +680,6 @@ setTimeout(() => {
 }, 800);
 
 $('bonus-btn').addEventListener('click', claimBonus);
+
+let adminCache = { users: [], tx: [] };
+$('admin-search').addEventListener('input', (e) => renderAdminUsers(e.target.value.trim().toLowerCase()));

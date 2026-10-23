@@ -71,6 +71,13 @@ export async function stats(env) {
   return { ...row, ...sums };
 }
 
+export async function adminTx(env) {
+  const { results } = await env.DB.prepare(
+    'SELECT t.telegram_id, t.amount, t.kind, t.note, t.created_at, u.username FROM transactions t LEFT JOIN users u ON u.telegram_id = t.telegram_id ORDER BY t.id DESC LIMIT 25'
+  ).all();
+  return results || [];
+}
+
 // ---------- Ежедневный бонус ----------
 export async function claimBonus(env, telegramId, amount, cooldownMs) {
   const now = Date.now();
