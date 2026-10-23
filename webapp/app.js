@@ -116,7 +116,7 @@ function demoSpin(bet) {
   return {
     initialGrid, tumblesCount: tumbles.length,
     totalWin,
-    tumbles: fs ? tumbles.map(t => ({ ...t, multiplier: fs.multiplier })) : tumbles, tumbles: tumbles.length ? tumbles.map((t, i) => ({ ...t, multiplier: fs ? fs.multiplier : 1 })) : tumbles,
+    tumbles: fs ? tumbles.map(t => ({ ...t, multiplier: fs.multiplier })) : tumbles,
     scatters: 0, freeSpins: 0, freeSpinsWon,
     balance: 1000, bonus, bonusEnd,
   };
