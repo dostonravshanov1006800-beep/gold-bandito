@@ -33,7 +33,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
 /* ---------- СЦЕНА ---------- */
 .screen { position: fixed; inset: 0; display: none; flex-direction: column; }
-.screen.active { display: flex; animation: screenIn .16s ease-out; }
+.screen.active { display: flex; animation: screenIn .2s ease-out; }
 @keyframes screenIn { from { opacity: 0; } to { opacity: 1; } }
 
 .scene { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
@@ -206,6 +206,16 @@ body.fs-mode .sky {
   animation: fsPulse 1.6s ease-in-out infinite;
 }
 .fs-star { color: var(--win); }
+.fs-total {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  background: linear-gradient(180deg, rgba(246,196,69,.28), rgba(246,196,69,.1));
+  border: 1.5px solid var(--gold-2);
+  font-weight: 800; font-size: 13.5px; color: var(--gold-1);
+  box-shadow: 0 0 12px rgba(246,196,69,.4), inset 0 1px 0 rgba(255,255,255,.15);
+  font-variant-numeric: tabular-nums;
+}
+.fs-total-coin { width: 15px; height: 15px; }
 @keyframes fsPulse { 50% { filter: brightness(1.35); } }
 
 .balance-wrap { display: flex; align-items: center; gap: 6px; }
@@ -300,11 +310,16 @@ body.fs-mode .sky {
 }
 .cell > svg { width: 84%; height: 84%; filter: drop-shadow(0 3px 4px rgba(0,0,0,.45)); }
 
-/* падение новых символов */
-.cell.drop { animation: drop .5s cubic-bezier(.22,1.4,.36,1) backwards; }
+/* падение новых символов — мягкий ход, лёгкий до-отскок как в оригинале */
+.cell.drop { animation: drop .58s cubic-bezier(.25,.82,.3,1.06) backwards; }
 @keyframes drop {
-  from { transform: translateY(-120%) scale(.85); opacity: 0; }
+  from { transform: translateY(-130%) scale(.9); opacity: 0; }
   to { transform: translateY(0) scale(1); opacity: 1; }
+}
+/* вывод текущих символов вниз перед новым раскладом */
+.cell.out { animation: fallOut .3s cubic-bezier(.5,.55,.45,1) forwards; }
+@keyframes fallOut {
+  to { transform: translateY(115%); opacity: 0; }
 }
 
 /* золотая рамка */
@@ -358,7 +373,10 @@ body.fs-mode .sky {
   background: radial-gradient(60% 60% at 50% 50%, rgba(20,9,38,.72), rgba(20,9,38,.4));
   border-radius: 10px;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity .24s ease;
 }
+.win-banner.show { opacity: 1; }
 .win-amount {
   font-family: Georgia, serif; font-weight: 800; font-size: 40px;
   background: linear-gradient(180deg, #fff3c9, #f6c445 55%, #d99a23);
@@ -396,6 +414,17 @@ body.fs-mode .sky {
   animation: winPop .5s cubic-bezier(.2,1.6,.4,1);
 }
 .fs-intro-sub { font-size: 18px; color: var(--muted); margin-top: 8px; }
+.fs-summary-label {
+  font-size: 13px; font-weight: 900; letter-spacing: 3px; color: var(--muted);
+}
+.fs-summary-amount {
+  font-family: Georgia, serif; font-weight: 800; font-size: 46px; margin-top: 6px;
+  background: linear-gradient(180deg, #fff3c9, #f6c445 55%, #d99a23);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 26px rgba(255,213,79,.5);
+  animation: winPop .45s cubic-bezier(.2,1.6,.4,1);
+  font-variant-numeric: tabular-nums;
+}
 
 /* летящие монеты */
 .coins-layer { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
@@ -885,3 +914,16 @@ body.fs-mode .sky {
   border-radius: 999px; padding: 4px 10px;
 }
 .sp-stars svg { width: 13px; height: 13px; color: #ffd54f; }
+
+
+/* ---------- ДОСТУПНОСТЬ ДВИЖЕНИЯ ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .cell.drop { animation: cellFade .2s ease-out backwards; }
+  .cell.out { animation: cellFade .15s ease-in forwards; }
+  @keyframes cellFade { from { opacity: 0; } }
+  .bulbs::before, .bulbs::after, .spin-btn::after, .bonus-btn::before,
+  .board-frame::before, .stars, .mist, .fireflies::before, .fireflies::after,
+  .coin-particle, .cell.hit, .cell.hit::after {
+    animation: none !important;
+  }
+}

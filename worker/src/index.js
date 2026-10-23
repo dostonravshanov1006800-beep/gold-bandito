@@ -80,9 +80,10 @@ export default {
           retrigger = result.freeSpins;
           remaining += retrigger;
         }
+        const fsTotal = (row.fs_total || 0) + result.totalWin; // общий выигрыш сессии бонуса
 
         await settleSpin(env, user.id, bet, result.totalWin, {
-          remaining, multiplier, bet,
+          remaining, multiplier, bet, total: remaining > 0 ? fsTotal : 0,
         });
         row = await ensureUser(env, user.id, user.username);
         return json(env, {
@@ -90,7 +91,8 @@ export default {
           bet,
           balance: row.balance,
           freeSpinsWon: retrigger,
-          bonus: { remaining, multiplier },
+          bonus: { remaining, multiplier, total: remaining > 0 ? fsTotal : 0 },
+          ...(remaining <= 0 ? { bonusEnd: { total: fsTotal, spins: result.freeSpinsTriggered ? undefined : undefined } } : {}),
         });
       }
 
@@ -106,7 +108,7 @@ export default {
       const result = playSpin(bet, Math.random, 0);
       const triggered = result.freeSpins > 0;   // 3+ гитар → бонус
       await settleSpin(env, user.id, bet, result.totalWin, triggered ? {
-        remaining: result.freeSpins, multiplier: 1, bet,
+        remaining: result.freeSpins, multiplier: 1, bet, total: 0,
       } : null);
       row = await ensureUser(env, user.id, user.username);
       return json(env, {
@@ -135,7 +137,7 @@ export default {
         nextBonusIn: Math.max(0, BONUS_COOLDOWN_MS - (Date.now() - lastBonus)),
         bonusAmount: BONUS_AMOUNT,
         bonus: row.fs_remaining > 0
-          ? { remaining: row.fs_remaining, multiplier: row.fs_multiplier, bet: row.fs_bet }
+          ? { remaining: row.fs_remaining, multiplier: row.fs_multiplier, bet: row.fs_bet, total: row.fs_total || 0 }
           : null,
         history: spins,
         betSteps: BET_STEPS,

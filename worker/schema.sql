@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
   spins INTEGER NOT NULL DEFAULT 0,
   fs_remaining INTEGER NOT NULL DEFAULT 0,
   fs_multiplier REAL NOT NULL DEFAULT 1,
-  fs_bet REAL NOT NULL DEFAULT 100,
+  fs_bet REAL,
+  fs_total REAL NOT NULL DEFAULT 0 NOT NULL DEFAULT 100,
   created_at TEXT DEFAULT (datetime('now'))
 );
 

@@ -95,11 +95,30 @@ function demoSpin(bet) {
     g = next;
     tumbles.push({ burns: [...burns], newCells, wildsAt, multiplier: 1, win: Math.round(tw * 100) / 100 });
   }
+  const totalWin = Math.round(tumbles.reduce((a, t) => a + t.win, 0) * 100) / 100;
+  const fs = state._demoFs;
+  let bonus = null, bonusEnd = null, freeSpinsWon = 0;
+  if (fs && fs.remaining > 0) {
+    fs.remaining -= 1;
+    fs.multiplier = Math.min(9, fs.multiplier + tumbles.filter(t => t.win > 0).length);
+    fs.total = Math.round(((fs.total || 0) + totalWin) * 100) / 100;
+    if (fs.remaining > 0) bonus = { remaining: fs.remaining, multiplier: fs.multiplier, bet: 100, total: fs.total };
+    else { bonusEnd = { total: fs.total }; state._demoFs = null; }
+  } else {
+    // демо: каждое 8-е вращение запускает бонус — чтобы фичу было видно
+    state._demoSpinN = (state._demoSpinN || 0) + 1;
+    if (state._demoSpinN % 8 === 0) {
+      freeSpinsWon = 12;
+      state._demoFs = { remaining: 12, multiplier: 1, total: 0 };
+      bonus = { remaining: 12, multiplier: 1, bet: 100, total: 0 };
+    }
+  }
   return {
-    initialGrid, tumbles, tumblesCount: tumbles.length,
-    totalWin: Math.round(tumbles.reduce((a, t) => a + t.win, 0) * 100) / 100,
-    scatters: 0, freeSpins: 0, freeSpinsWon: 0,
-    balance: 1000, bonus: null,
+    initialGrid, tumblesCount: tumbles.length,
+    totalWin,
+    tumbles: fs ? tumbles.map(t => ({ ...t, multiplier: fs.multiplier })) : tumbles, tumbles: tumbles.length ? tumbles.map((t, i) => ({ ...t, multiplier: fs ? fs.multiplier : 1 })) : tumbles,
+    scatters: 0, freeSpins: 0, freeSpinsWon,
+    balance: 1000, bonus, bonusEnd,
   };
 }
 
@@ -264,7 +283,7 @@ function setCell(idx, cellData, drop = false, delay = 0) {
 }
 
 function renderGrid(cells, drop = false) {
-  cells.forEach((c, idx) => setCell(idx, c, drop, drop ? (idx % 5) * 60 + Math.floor(idx / 5) * 50 : 0));
+  cells.forEach((c, idx) => setCell(idx, c, drop, drop ? (idx % 5) * 55 + Math.floor(idx / 5) * 40 : 0));
 }
 
 function randomGrid() {
@@ -292,13 +311,20 @@ function updateBalance(target) {
   requestAnimationFrame(step);
 }
 
+function updateFsTotal(v) {
+  $('fs-total-val').textContent = fmt(v);
+}
+
 function updateBonusUI() {
   const badge = $('fs-badge');
+  const totalChip = $('fs-total');
   const spinLabel = document.querySelector('#spin .spin-label');
   const inBonus = !!(state.bonus && state.bonus.remaining > 0);
   if (inBonus) {
     $('fs-count').textContent = state.bonus.remaining;
     $('fs-mult').textContent = '×' + state.bonus.multiplier;
+    updateFsTotal(state.bonus.total || 0);
+    totalChip.classList.remove('hidden');
     badge.classList.remove('hidden');
     document.body.classList.add('fs-mode');
     $('spin').classList.add('free');
@@ -307,6 +333,7 @@ function updateBonusUI() {
     $('bet-plus').disabled = true;
   } else {
     state.bonus = null;
+    totalChip.classList.add('hidden');
     badge.classList.add('hidden');
     document.body.classList.remove('fs-mode');
     $('spin').classList.remove('free');
@@ -401,15 +428,30 @@ async function showBanner(amount, mult, isFinal, big) {
   amountEl.classList.remove('hidden');
   if (mult > 1) { multEl.textContent = 'множитель ×' + mult; multEl.classList.remove('hidden'); }
   else multEl.classList.add('hidden');
-  banner.classList.remove('hidden');
-  await sleep(isFinal ? 1400 : 620);
-  if (!isFinal) banner.classList.add('hidden');
+  banner.classList.add('show');
+  amountEl.style.animation = 'none';
+  void amountEl.offsetWidth;
+  amountEl.style.animation = '';
+  await sleep(isFinal ? 1700 : 700);
+  if (!isFinal) banner.classList.remove('show');
 }
 
 async function animateSpin(result) {
   $('last-win').textContent = '0';
+
+  // мягкий «вывоз» текущих символов вниз, как в оригинале
+  const base = state.bonus
+    ? (result.bonusEnd ? result.bonusEnd.total : state.bonus.total || 0) - result.totalWin
+    : 0;
+  for (let i = 0; i < CELL_COUNT; i++) {
+    const c = grid.children[i];
+    if (!c || !c.innerHTML) continue;
+    c.style.animationDelay = (i % 5) * 45 + 'ms';
+    c.classList.add('out');
+  }
+  await sleep(300);
   renderGrid(result.initialGrid, true);
-  await sleep(520);
+  await sleep(560);
 
   let accWin = 0;
   let lastMult = 1;
@@ -422,7 +464,7 @@ async function animateSpin(result) {
     // подсветка выигрышных символов
     for (const idx of t.burns) grid.children[idx].classList.add('hit');
     if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    await sleep(430);
+    await sleep(470);
 
     // рамки превращаются в вайлдов
     if (t.wildsAt && t.wildsAt.length) {
@@ -430,7 +472,7 @@ async function animateSpin(result) {
         const cell = grid.children[idx];
         if (cell) cell.classList.add('become-wild');
       }
-      await sleep(380);
+      await sleep(430);
     }
 
     // сгорание
@@ -438,7 +480,7 @@ async function animateSpin(result) {
       grid.children[idx].classList.remove('hit');
       grid.children[idx].classList.add('burn');
     }
-    await sleep(340);
+    await sleep(390);
 
     // падение новых
     for (const nc of t.newCells) setCell(nc.idx, nc, true, (nc.idx % 5) * 45);
@@ -446,8 +488,9 @@ async function animateSpin(result) {
     await sleep(120);
     reconcileGrid(curGrid); // страховка: DOM обязан совпадать с расчётом
 
-    // накопленный выигрыш шага
+    // накопленный выигрыш шага + бегущий итог бонуса
     $('last-win').textContent = fmt(accWin);
+    if (state.bonus || result.bonusEnd) updateFsTotal(base + accWin);
     await sleep(120);
     flyCoins(t.win);
     await showBanner(accWin, t.multiplier || 1, false, false);
@@ -458,7 +501,7 @@ async function animateSpin(result) {
       updateBonusUI();
     }
   }
-  $('win-banner').classList.add('hidden');
+  $('win-banner').classList.remove('show');
 
   // итоговый баннер
   if (result.totalWin > 0) {
@@ -467,7 +510,19 @@ async function animateSpin(result) {
     flyCoins(result.totalWin / 10);
     await showBanner(result.totalWin, lastMult, true, big);
   }
-  $('win-banner').classList.add('hidden');
+  $('win-banner').classList.remove('show');
+
+  // завершение бонуса: общий выигрыш сессии
+  if (result.bonusEnd) {
+    const sum = $('fs-summary');
+    $('fs-summary-amount').textContent = '+' + fmt(result.bonusEnd.total) + ' G';
+    sum.classList.remove('hidden');
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    flyCoins(10);
+    await sleep(2400);
+    sum.classList.add('hidden');
+    toast('Бонус завершён: +' + fmt(result.bonusEnd.total) + ' G');
+  }
 
   // фриспины: интро нового бонуса или ретриггер
   const fsWon = result.freeSpinsWon || 0;

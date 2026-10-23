@@ -1,6 +1,6 @@
 // D1 (SQLite) — пользователи, спины, транзакции, состояние бонуса.
 
-const USER_COLS = 'telegram_id, username, balance, spins, fs_remaining, fs_multiplier, fs_bet, created_at';
+const USER_COLS = 'telegram_id, username, balance, spins, fs_remaining, fs_multiplier, fs_bet, fs_total, created_at';
 
 export async function ensureUser(env, telegramId, username = null) {
   await env.DB.prepare(
@@ -33,8 +33,8 @@ export async function settleSpin(env, telegramId, bet, win, fs) {
       'INSERT INTO spins (telegram_id, bet, win, multipliers) VALUES (?, ?, ?, ?)'
     ).bind(telegramId, bet, win, fs && fs.multiplier > 1 ? String(fs.multiplier) : null),
     env.DB.prepare(
-      'UPDATE users SET balance = balance + ?, fs_remaining = ?, fs_multiplier = ?, fs_bet = ? WHERE telegram_id = ?'
-    ).bind(win, fs ? fs.remaining : 0, fs ? fs.multiplier : 1, fs ? fs.bet : bet, telegramId),
+      'UPDATE users SET balance = balance + ?, fs_remaining = ?, fs_multiplier = ?, fs_bet = ?, fs_total = ? WHERE telegram_id = ?'
+    ).bind(win, fs ? fs.remaining : 0, fs ? fs.multiplier : 1, fs ? fs.bet : bet, fs ? (fs.total || 0) : 0, telegramId),
     env.DB.prepare(
       "INSERT INTO transactions (telegram_id, amount, kind, note) VALUES (?, ?, 'spin', ?)"
     ).bind(telegramId, win - bet, `bet ${bet}`),

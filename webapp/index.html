@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gold Bandito</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=10" />
+  <link rel="stylesheet" href="style.css?v=11" />
   <script src="config.js"></script>
 </head>
 <body>
@@ -300,6 +300,7 @@
       <span class="logo-gold">GOLD</span><span class="logo-bandito">BANDITO</span>
     </div>
     <div class="topbar-right">
+      <div id="fs-total" class="fs-total hidden"><svg class="fs-total-coin"><use href="#ui-coin"/></svg><span id="fs-total-val">0</span></div>
       <div id="fs-badge" class="fs-badge hidden">
         <span class="fs-star">★</span><span id="fs-count">12</span>
         <span class="fs-x" id="fs-mult">×1</span>
@@ -330,6 +331,11 @@
         <div id="fs-intro" class="fs-intro hidden">
           <div class="fs-intro-title">ФРИСПИНЫ!</div>
           <div class="fs-intro-sub" id="fs-intro-count">12 вращений</div>
+        </div>
+        <div id="fs-summary" class="fs-intro hidden">
+          <div class="fs-summary-label">БОНУС ЗАВЕРШЁН</div>
+          <div class="fs-summary-amount" id="fs-summary-amount">+0</div>
+          <div class="fs-intro-sub">Общий выигрыш сессии</div>
         </div>
         <div id="coins-layer" class="coins-layer" aria-hidden="true"></div>
       </div>
@@ -484,6 +490,6 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
