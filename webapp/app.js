@@ -268,7 +268,7 @@ async function fetchJson(url, opts, tries = 2) {
 
 async function apiGet(path) {
   const initData = tg && tg.initData ? tg.initData : '';
-  const res = await fetchJson(`${API}${path}?d=${encodeURIComponent(initData)}`);
+  const res = await fetchJson(`${API}${path}?d=${encodeURIComponent(initData)}`, undefined, 3);
   if (res.status === 401) throw new Error('unauthorized');
   return res.json();
 }
@@ -354,10 +354,23 @@ async function animateSpin(result) {
   let accWin = 0;
   let lastMult = 1;
   let curGrid = result.initialGrid.slice();
+  const cm = $('cascade-mult'), cmLabel = $('cm-label'), cmX = $('cm-x');
 
-  for (const t of result.tumbles) {
+  for (let ti = 0; ti < result.tumbles.length; ti++) {
+    const t = result.tumbles[ti];
     accWin += t.win;
     lastMult = Math.max(lastMult, t.multiplier || 1);
+
+    // движущийся множитель наверху: серия в базе, множитель в бонусе
+    if (t.win > 0) {
+      cmLabel.textContent = state.bonus ? 'МНОЖИТЕЛЬ' : 'СЕРИЯ';
+      cmX.textContent = '×' + (state.bonus ? (t.multiplier || 1) : ti + 1);
+      cm.classList.remove('hidden');
+      cm.classList.add('show');
+      cm.classList.remove('pulse');
+      void cm.offsetWidth;
+      cm.classList.add('pulse');
+    }
 
     // подсветка выигрышных символов
     for (const idx of t.burns) grid.children[idx].classList.add('hit');
@@ -400,6 +413,8 @@ async function animateSpin(result) {
     }
   }
   $('win-banner').classList.remove('show');
+  cm.classList.remove('show');
+  setTimeout(() => { if (!cm.classList.contains('show')) cm.classList.add('hidden'); }, 500);
 
   // итоговый баннер
   if (result.totalWin > 0) {
@@ -497,15 +512,93 @@ async function refreshState() {
     $('bet').textContent = fmt(betValue());
     renderHistory(s.history || []);
     renderPaytable();
+    renderExamples();
     updateBonusUI();
     $('menu-item-admin').classList.toggle('hidden', !s.isAdmin);
     const bonusReady = (s.nextBonusIn || 0) <= 0;
     $('bonus-btn').classList.toggle('claimed', !bonusReady);
     $('bonus-btn').classList.toggle('ready', bonusReady);
+    $('retry-pill').classList.add('hidden');
   } catch (e) {
     renderGrid(randomGrid(), true);
-    toast('Нет связи с сервером', true);
+    const msg = e && e.message === 'unauthorized'
+      ? 'Сессия истекла. Закрой игру и открой заново из меню бота.'
+      : (navigator.onLine === false
+        ? 'Нет интернета. Проверь соединение и попробуй ещё раз.'
+        : 'Сервер не отвечает. Проверяем соединение…');
+    const pill = $('retry-pill');
+    $('retry-msg').textContent = msg;
+    pill.classList.remove('hidden');
   }
+}
+
+function retryConnect() {
+  $('retry-pill').classList.add('hidden');
+  refreshState();
+}
+
+const EX_ARROW = '<svg class="mini-arrow" viewBox="0 0 24 24" fill="none"><path d="M4 12h15M13 5l7 7-7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function miniGrid(syms, hl = [], fr = []) {
+  let html = '<div class="mini-grid">';
+  for (let i = 0; i < syms.length; i++) {
+    const cls = hl.includes(i) ? ' hl' : (fr.includes(i) ? ' fr' : '');
+    const src = syms[i] ? `<img src="sym/${syms[i].toLowerCase()}.png" alt="">` : '';
+    html += `<div class="mini-cell${cls}">${src}</div>`;
+  }
+  return html + '</div>';
+}
+
+function renderExamples() {
+  const bandit = (state.paytable.find(p => p.id === 'BANDIT') || { pays: { 3: 3.4, 4: 10.88, 5: 34 } });
+  const p3 = Number(bandit.pays[3]), p4 = Number(bandit.pays[4]), p5 = Number(bandit.pays[5]);
+  const b = 'BANDIT';
+  const ex1 = [b,'SKULL','COIN','GEM','CACTUS',
+               'MARACAS', b,'DYNAMITE','SPUR','TEQUILA',
+               'SOMBRERO','CACTUS', b,'MONEYBAG','PISTOL',
+               'GEM','COIN','SKULL','PISTOL','COIN'];
+  const ex2 = ['COIN','SKULL','COIN','GEM','CACTUS',
+               'MARACAS','GEM','DYNAMITE','SPUR','TEQUILA',
+               'SOMBRERO','CACTUS','PISTOL','MONEYBAG','PISTOL',
+               'GEM','COIN','SKULL','PISTOL','COIN'];
+  $('win-examples').innerHTML = `
+    <div class="example-card">
+      <h4>Формат выигрыша</h4>
+      <p class="ex-note">3+ одинаковых символа подряд слева направо — позиция в столбце не важна. Золотые клетки — выигрышная линия.</p>
+      <div class="ex-row">${miniGrid(ex1, [0, 6, 12])}</div>
+      <p class="ex-caption">3 Бандита подряд → ставка ×${p3} · при ставке 100 G выигрыш +${Math.round(p3 * 100)} G</p>
+    </div>
+    <div class="example-card">
+      <h4>Каскады — выигрыши серией</h4>
+      <p class="ex-note">Выигрышные символы сгорают, сверху падают новые — и выигрыш считается заново.</p>
+      <div class="ex-row">${miniGrid(ex1, [0, 6, 12])} ${EX_ARROW} ${miniGrid(ex2)}</div>
+      <p class="ex-caption">Один спин может принести несколько выигрышей подряд</p>
+    </div>
+    <div class="example-card">
+      <h4>Золотая рамка → Вайлд</h4>
+      <p class="ex-note">Символ в золотой рамке при сгорании превращается в Вайлда — заменяет любой платёжный символ.</p>
+      <div class="ex-row">
+        ${miniGrid(['SKULL', b, b, b, 'COIN'], [1, 2, 3], [0])} ${EX_ARROW} ${miniGrid(['WILD', b, b, b, 'COIN'], [0, 1, 2, 3])}
+      </div>
+      <p class="ex-caption">4 Бандита с Вайлдом → ставка ×${p4} · при ставке 100 G это +${Math.round(p4 * 100)} G</p>
+    </div>
+    <div class="example-card">
+      <h4>Множитель фриспинов</h4>
+      <p class="ex-note">Во фриспинах каждый каскад поднимает множитель на +1 — и он не сбрасывается до конца бонуса.</p>
+      <div class="mult-track">
+        <span class="mult-chip">×1</span><span class="mult-chip plus">+</span>
+        <span class="mult-chip">×2</span><span class="mult-chip plus">+</span>
+        <span class="mult-chip">×3</span><span class="mult-chip plus">→</span>
+        <span class="mult-chip">×10</span>
+      </div>
+      <p class="ex-caption">Выигрыш ×50 G при множителе ×10 → +500 G за каскад</p>
+    </div>
+    <div class="example-card">
+      <h4>Максимальная линия</h4>
+      <p class="ex-note">5 одинаковых подряд слева направо — самый большой коэффициент символа.</p>
+      <div class="ex-row">${miniGrid([b, b, b, b, b, 'COIN','SKULL','GEM','CACTUS','PISTOL', 'SPUR','TEQUILA','MARACAS','MONEYBAG','SOMBRERO', 'GEM','COIN','SKULL','PISTOL','DYNAMITE'], [0, 1, 2, 3, 4])}</div>
+      <p class="ex-caption">5 Бандитов → ставка ×${p5} · при ставке 100 G это +${Math.round(p5 * 100)} G</p>
+    </div>`;
 }
 
 function renderHistory(rows) {
@@ -547,6 +640,7 @@ function renderPaytable() {
 
 // ---------- обработчики ----------
 $('spin').addEventListener('click', doSpin);
+$('retry-btn').addEventListener('click', retryConnect);
 
 $('bet-minus').addEventListener('click', () => {
   state.betIndex = Math.max(0, state.betIndex - 1);

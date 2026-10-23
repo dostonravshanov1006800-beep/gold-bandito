@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gold Bandito</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=22" />
+  <link rel="stylesheet" href="style.css?v=23" />
   <script src="config.js"></script>
 </head>
 <body>
@@ -102,6 +102,10 @@
     <div class="board-frame">
       <div class="board-wrap">
         <div id="grid" class="grid"></div>
+        <div id="cascade-mult" class="cascade-mult hidden" aria-hidden="true">
+          <span class="cm-label" id="cm-label">СЕРИЯ</span>
+          <span class="cm-x" id="cm-x">×1</span>
+        </div>
         <div id="win-banner" class="win-banner hidden">
           <div id="win-amount" class="win-amount">+0</div>
           <div id="win-mult" class="win-mult hidden">×1</div>
@@ -138,6 +142,10 @@
       <span class="ctl-label">ВЫИГРЫШ</span>
       <div class="win-value"><svg class="win-coin"><use href="#ui-coin"/></svg><span id="last-win">0</span></div>
       <button id="auto" class="auto-btn" aria-label="Авто"><svg class="auto-icon"><use href="#ui-auto"/></svg><span id="auto-label">АВТО</span></button>
+    </div>
+    <div id="retry-pill" class="retry-pill hidden">
+      <p id="retry-msg">Нет связи с сервером</p>
+      <button id="retry-btn" class="retry-btn">ПОДКЛЮЧИТЬСЯ</button>
     </div>
     <div id="auto-pop" class="auto-pop hidden">
       <span class="auto-pop-t">АВТО-ПРОКРУТЫ</span>
@@ -197,6 +205,8 @@
         <p>Жми <b>«+» рядом с балансом</b> раз в 24 часа и получай <b>+500 голды</b>.</p>
       </div>
     </div>
+    <h3>Примеры выигрышей</h3>
+    <div id="win-examples"></div>
     <h3>Таблица выплат <small>×ставка</small></h3>
     <table id="paytable" class="paytable"></table>
     <p class="muted">RTP ≈ 96.7% · Результат каждого спина рассчитывается на сервере.</p>
@@ -273,6 +283,6 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="app.js?v=22"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>
