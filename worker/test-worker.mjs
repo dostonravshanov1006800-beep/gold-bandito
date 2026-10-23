@@ -159,12 +159,13 @@ const env = {
   BOT_TOKEN,
   ADMIN_IDS: ADMIN,
   WEBHOOK_SECRET: 's3cret',
+  RATE_LIMIT: 'off',
   WEBAPP_URL: 'https://example.com/',
   ALLOWED_ORIGINS: 'https://example.com',
   DB: patchDB(makeDB()),
 };
 
-async function call(path, opts = {}, initDataHeader = null) {
+async function call(path, opts = {}, initDataHeader = null, envArg = null) {
   const url = new URL('https://worker.example' + path);
   const headers = { ...(opts.headers || {}) };
   let req;
@@ -178,7 +179,7 @@ async function call(path, opts = {}, initDataHeader = null) {
       body: JSON.stringify(opts.body || {}),
     });
   }
-  return worker.fetch(req, env, { waitUntil: () => {} });
+  return worker.fetch(req, envArg || env, { waitUntil: () => {} });
 }
 
 const INIT_DATA = makeInitData(999001);
@@ -297,6 +298,49 @@ await handleUpdate(env, {
 check('без charge_id: зачисления нет', pu.balance === 2000, `balance=${pu.balance}`);
 
 globalThis.fetch = origFetch;
+
+// 9. ставка 10 000 принимается
+u.balance = 20000;
+res = await call('/api/spin', { body: { bet: 10000 } }, INIT_DATA);
+const rb = await res.json();
+check('спин 10 000: принят', res.status === 200, JSON.stringify(rb).slice(0,120));
+if (res.status === 200) check('спин 10 000: баланс сходится', Math.abs(rb.balance - (20000 - 10000 + rb.totalWin)) < 0.01, `${rb.balance}`);
+res = await call('/api/spin', { body: { bet: 10001 } }, INIT_DATA);
+check('кривая ставка 10001: 400', res.status === 400);
+
+// 10. CORS: чужой Origin не получает заголовок
+res = await call('/', { method: 'GET', headers: { Origin: 'https://evil.example' } });
+check('CORS: чужой Origin без ACAO', !res.headers.get('access-control-allow-origin'), res.headers.get('access-control-allow-origin') || '');
+res = await call('/', { method: 'GET', headers: { Origin: 'https://example.com' } });
+check('CORS: доверенный Origin отражён', res.headers.get('access-control-allow-origin') === 'https://example.com');
+
+// 11. админ-give: защита от дробных и гигантских сумм
+const ADMIN_DATA = makeInitData(8396883978);
+res = await call('/api/admin/give', { body: { telegramId: 999001, amount: 100.5 } }, ADMIN_DATA);
+check('give дробная сумма: 400', res.status === 400);
+res = await call('/api/admin/give', { body: { telegramId: 999001, amount: 1e12 } }, ADMIN_DATA);
+check('give гигантская сумма: 400', res.status === 400);
+res = await call('/api/admin/give', { body: { telegramId: -5, amount: 100 } }, ADMIN_DATA);
+check('give отрицательный id: 400', res.status === 400);
+
+// 12. рейт-лимит спинов: 30 за 10 секунд
+const RL_ENV = { ...env, RATE_LIMIT: undefined };
+delete RL_ENV.RATE_LIMIT;
+const RL_ID = 666002;
+env.DB._users.set(RL_ID, { telegram_id: RL_ID, username: 'rl', balance: 1e6, spins: 0, fs_remaining: 0, fs_multiplier: 1, fs_bet: 100, created_at: 'now' });
+const RL_DATA = makeInitData(RL_ID);
+let ok200 = 0, got429 = 0;
+for (let i = 0; i < 40; i++) {
+  const rr = await call('/api/spin', { body: { bet: 10 } }, RL_DATA, RL_ENV);
+  if (rr.status === 200) ok200++; else if (rr.status === 429) got429++;
+  const rj = await rr.json().catch(() => ({}));
+  if (rj.bonus && rj.bonus.remaining > 0) {
+    // добиваем бонус, чтобы следующие спины были платными
+    for (let f = 0; f < 50; f++) { const fr = await call('/api/spin', { body: {} }, RL_DATA, RL_ENV); const fj = await fr.json(); if (!fj.bonus || fj.bonus.remaining === 0) break; }
+  }
+}
+check('рейт-лимит: не более 30 спинов за окно', ok200 <= 30, `ok200=${ok200}`);
+check('рейт-лимит: спам получает 429', got429 > 0, `429=${got429}`);
 
 console.log(failures === 0 ? '\nВСЕ ТЕСТЫ ПРОЙДЕНЫ' : `\n${failures} ПРОВАЛОВ`);
 process.exit(failures === 0 ? 0 : 1);

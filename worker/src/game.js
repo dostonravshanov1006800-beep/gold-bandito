@@ -179,5 +179,5 @@ export function playSpin(bet, rand = Math.random, startMult = 0) {
 }
 
 export const PAYTABLE = SYMBOLS.map(s => ({ id: s.id, pays: s.pays }));
-export const BET_STEPS = [10, 50, 100, 500, 1000];
+export const BET_STEPS = [10, 50, 100, 500, 1000, 2500, 5000, 10000];
 export const START_BALANCE = 1000;

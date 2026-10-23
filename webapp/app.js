@@ -85,6 +85,10 @@ async function renderAdmin() {
   }
 }
 
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function renderAdminUsers(q) {
   const users = adminCache.users.filter(u =>
     !q || String(u.username || '').toLowerCase().includes(q) || String(u.telegram_id).includes(q)
@@ -92,7 +96,7 @@ function renderAdminUsers(q) {
   $('admin-count').textContent = '(' + users.length + ')';
   $('admin-users').innerHTML = users.map(u => `
     <li>
-      <div class="au-name">${u.username ? '@' + u.username : 'id ' + u.telegram_id}
+      <div class="au-name">${u.username ? '@' + esc(u.username) : 'id ' + u.telegram_id}
         <small>id ${u.telegram_id} · спинов: ${u.spins ?? 0}${u.fs_remaining > 0 ? ' · ФС: ' + u.fs_remaining : ''}</small>
       </div>
       <div class="au-bal" id="au-bal-${u.telegram_id}">${fmt(u.balance)} G</div>
@@ -122,7 +126,7 @@ function renderAdminTx() {
   const KIND_RU = { topup_admin: 'Админ', bonus_daily: 'Бонус', spin: 'Спин', topup_stars: 'Пополнение' };
   $('admin-tx').innerHTML = adminCache.tx.map(t => `
     <li>
-      <span class="tx-who">${t.username ? '@' + t.username : 'id ' + t.telegram_id}
+      <span class="tx-who">${t.username ? '@' + esc(t.username) : 'id ' + t.telegram_id}
         <span class="tx-kind"> · ${KIND_RU[t.kind] || t.kind}</span></span>
       <span class="tx-amt ${t.amount >= 0 ? 'plus' : 'minus'}">${t.amount >= 0 ? '+' : ''}${fmt(t.amount)} G</span>
     </li>`).join('') || '<li class="history-empty">Операций пока нет</li>';
@@ -138,7 +142,7 @@ const coinsLayer = $('coins-layer');
 
 const state = {
   balance: 0,
-  betSteps: [10, 50, 100, 500, 1000],
+  betSteps: [10, 50, 100, 500, 1000, 2500, 5000, 10000],
   betIndex: 2,
   spinning: false,
   auto: false,

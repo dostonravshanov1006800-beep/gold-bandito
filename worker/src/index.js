@@ -18,14 +18,33 @@ function isAdminUser(env, userId) {
 
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
 
+let currentRequest = null;
+
 function corsHeaders(env) {
-  const origins = (env.ALLOWED_ORIGINS || '*').split(',').map(s => s.trim());
+  const request = currentRequest;
+  const list = (env.ALLOWED_ORIGINS || '*').split(',').map(s => s.trim());
+  const origin = (request && request.headers.get('Origin')) || '';
+  // отвечаем только доверенному Origin; чужие домены ответ не прочитают
+  const allow = list.includes('*') ? (origin || list[0]) : (list.includes(origin) ? origin : null);
+  if (!allow) return { 'Vary': 'Origin' };
   return {
-    'Access-Control-Allow-Origin': origins[0] || '*',
+    'Access-Control-Allow-Origin': allow,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, X-Init-Data',
     'Vary': 'Origin',
   };
+}
+
+// Рейт-лимит спинов: 30 за 10 секунд на юзера (защита от спама/абуза)
+const SPIN_WINDOW_MS = 10000, SPIN_MAX = 30;
+const spinHits = new Map();
+function spinRateLimited(userId) {
+  const now = Date.now();
+  const arr = (spinHits.get(userId) || []).filter(t => now - t < SPIN_WINDOW_MS);
+  if (arr.length >= SPIN_MAX) { spinHits.set(userId, arr); return true; }
+  arr.push(now);
+  spinHits.set(userId, arr);
+  return false;
 }
 
 function json(env, data, status = 200) {
@@ -38,6 +57,7 @@ function json(env, data, status = 200) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    currentRequest = request;
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders(env) });
@@ -99,6 +119,7 @@ export default {
       // обычный спин
       bet = Number(body.bet);
       if (!BET_STEPS.includes(bet)) return json(env, { error: 'bad_bet' }, 400);
+      if (env.RATE_LIMIT !== 'off' && spinRateLimited(user.id)) return json(env, { error: 'too_fast' }, 429);
 
       const ok = await placeBet(env, user.id, bet);
       if (!ok) {
@@ -204,7 +225,9 @@ export default {
       const body = await request.json().catch(() => ({}));
       const targetId = Number(body.telegramId);
       const amount = Number(body.amount);
-      if (!targetId || !amount) return json(env, { error: 'bad_request' }, 400);
+      if (!Number.isInteger(targetId) || targetId <= 0 ||
+          !Number.isFinite(amount) || Math.abs(amount) > 1e9 ||
+          Math.round(amount) !== amount) return json(env, { error: 'bad_request' }, 400);
       const bal = await adminGive(env, targetId, amount, admin.id);
       return json(env, { balance: bal });
     }
